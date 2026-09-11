@@ -1,0 +1,356 @@
+/* Popup layout using the shared DESIGN.md tokens. */
+.popup-shell {
+  /* Popup-specific type scale; keep the report's shared sizing unchanged. */
+  --text-card-title: 14px;
+  --text-body: 13px;
+  --text-meta: 12px;
+  --text-tech-label: 12px;
+  --text-verdict-popup: 23px;
+  --popup-min-height: 200px;
+  --popup-max-height: 540px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: var(--space-10) var(--space-3);
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+}
+.popup-frame {
+  width: var(--popup-width);
+  max-width: 100%;
+  min-height: var(--popup-min-height);
+  max-height: var(--popup-max-height);
+  padding: var(--space-3);
+  background: var(--color-surface-subtle);
+}
+.popup {
+  width: 100%;
+  min-height: calc(var(--popup-min-height) - var(--space-3) * 2);
+  max-height: calc(var(--popup-max-height) - var(--space-3) * 2);
+  overflow: auto;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.popup-header {
+  margin-bottom: var(--space-3);
+}
+.popup .brand {
+  font-size: var(--text-card-title);
+  font-weight: 700;
+}
+.popup .brand-mark {
+  width: 24px;
+  height: 24px;
+}
+.popup .brand-mark svg {
+  width: 16px;
+  height: 16px;
+}
+.popup .brand-dot {
+  display: inline;
+}
+.popup form > label {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+.popup .url-input-wrap input {
+  width: 100%;
+  height: 42px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-tech-label);
+  outline: none;
+}
+.popup .url-input-wrap input:hover:not(:disabled) {
+  border-color: var(--color-text-muted);
+}
+.popup .url-input-wrap input:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px var(--color-focus);
+}
+.popup .url-input-wrap input:disabled {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+}
+.popup .url-input-wrap input::placeholder {
+  color: var(--color-text-muted);
+}
+.popup .url-input-wrap.invalid input {
+  border-color: var(--color-danger);
+}
+.popup .input-error {
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--color-danger);
+  margin-top: var(--space-2);
+}
+.popup form > .button {
+  margin-top: var(--space-2);
+}
+.popup .button {
+  font-size: var(--text-body);
+}
+.popup-section {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+.popup .fast-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+}
+.popup .fast-loading h2 {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  font-weight: 600;
+  letter-spacing: 0;
+  animation: popup-loading-text-pulse 1.8s ease-in-out infinite;
+}
+.popup .fast-loading .spinner {
+  animation:
+    spin 1s linear infinite,
+    popup-loading-icon-pulse 1.8s ease-in-out infinite;
+}
+.popup .popup-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-verdict-popup);
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+}
+.popup .popup-status-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+.popup-status-icon.caution {
+  background: var(--color-caution-soft);
+}
+.popup-status-icon.safe {
+  background: var(--color-safe-soft);
+}
+.popup-status-icon.danger {
+  background: var(--color-danger-soft);
+}
+.popup .popup-summary {
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+.popup .fast-result.fade-in {
+  animation: popup-result-in 220ms ease-out both;
+}
+.popup .fast-result > * {
+  animation: popup-result-item-in 220ms ease-out both;
+}
+.popup .fast-result > :nth-child(1) {
+  animation-delay: 20ms;
+}
+.popup .fast-result > :nth-child(2) {
+  animation-delay: 70ms;
+}
+.popup .fast-result > :nth-child(3) {
+  animation-delay: 120ms;
+}
+.popup .fast-result > :nth-child(4) {
+  animation-delay: 170ms;
+}
+.popup .fast-result > :nth-child(5) {
+  animation-delay: 220ms;
+}
+.popup .fast-result > :nth-child(6) {
+  animation-delay: 270ms;
+}
+.popup .fast-result .popup-status-icon {
+  animation: popup-verdict-icon-in 240ms ease-out 20ms both;
+}
+.popup-evidence {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+.popup-evidence h2 {
+  font-size: var(--text-body);
+  line-height: 1.55;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  letter-spacing: 0;
+}
+.popup-evidence ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.popup-evidence li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--text-meta);
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.evidence-bullet {
+  width: var(--space-1);
+  height: var(--space-1);
+  margin-top: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.popup-evidence > p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--color-safe);
+}
+.popup-evidence > p svg {
+  flex-shrink: 0;
+}
+.popup-partial {
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--color-caution-border);
+  background: var(--color-caution-soft);
+  border-radius: var(--radius-md);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--color-caution);
+}
+.popup .deep-prompt {
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: var(--space-1) 0;
+}
+.popup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.popup-actions .button {
+  width: 100%;
+  margin: 0;
+}
+.popup .popup-error h2 {
+  font-size: var(--text-card-title);
+  line-height: 1.45;
+  margin-bottom: var(--space-1);
+  letter-spacing: 0;
+}
+.popup .popup-error p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  line-height: 1.65;
+}
+.popup .popup-error .button {
+  margin-top: var(--space-3);
+}
+.popup-blocked {
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+}
+.popup-footer {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: var(--space-2);
+}
+.popup-shell.extension {
+  width: var(--popup-width);
+  min-height: var(--popup-min-height);
+  padding: 0;
+  display: block;
+  background: var(--color-surface-subtle);
+}
+@keyframes popup-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes popup-result-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes popup-verdict-icon-in {
+  from {
+    transform: scale(0.97);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes popup-loading-icon-pulse {
+  0%,
+  100% {
+    opacity: 0.58;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes popup-loading-text-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (max-width: 400px) {
+  .popup-shell.web-preview {
+    padding-top: var(--space-6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .popup .fast-loading .spinner,
+  .popup .fast-loading h2,
+  .popup .fast-result.fade-in,
+  .popup .fast-result > *,
+  .popup .fast-result .popup-status-icon {
+    animation: none;
+  }
+}

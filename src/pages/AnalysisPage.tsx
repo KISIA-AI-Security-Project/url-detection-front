@@ -32,6 +32,7 @@ import {
   Spinner,
   StatusIcon,
   TechnicalValue,
+  ThemeToggle,
 } from "../components/ui";
 
 const prefersReducedMotion = () =>
@@ -163,6 +164,17 @@ export function AnalysisResult({
   const [expandedEvidence, setExpandedEvidence] = useState<Set<string>>(
     () => new Set(),
   );
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "dark";
+    return window.localStorage.getItem("linkguard-report-theme") === "light"
+      ? "light"
+      : "dark";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("linkguard-report-theme", theme);
+  }, [theme]);
+  const toggleTheme = () =>
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   const keyEvidence = rankEvidence(result.evidence, 5);
   const toggle = (id: Layer) =>
     setExpanded((prev) => {
@@ -199,8 +211,8 @@ export function AnalysisResult({
   };
   return (
     <>
-      <Header />
-      <main className="report-main fade-in">
+      <Header right={<ThemeToggle theme={theme} onToggle={toggleTheme} />} />
+      <main className="report-main fade-in" data-theme={theme}>
         <h1 id="report-title" className="sr-only">
           분석 결과
         </h1>

@@ -198,6 +198,7 @@ button svg,
   margin: 0 auto;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--space-8);
 }
 .brand {
@@ -225,25 +226,61 @@ button svg,
 .brand-dot {
   color: var(--ink);
 }
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--mute);
+}
+.theme-toggle:hover {
+  background: var(--color-surface-hover);
+  color: var(--ink);
+}
 
-/* Detailed report: dark console visual refresh (DESIGN.md section 10).
-   Scoped to body:has(.report-main), which is only ever true on this page,
-   so overriding the shared color tokens here never reaches the popup or
-   other screens -- see DESIGN.md section 10 for why this page intentionally
-   departs from the light, restrained system used everywhere else. */
+/* Detailed report: light/dark theme (DESIGN.md section 10). Scoped to
+   body:has(.report-main), which is only ever true on this page, so
+   overriding the shared color tokens here never reaches the popup or
+   other screens. The report defaults to the shared light palette below;
+   body:has(.report-main[data-theme="dark"]) further down swaps in the
+   dark console palette when the on-page toggle is set to dark -- see
+   DESIGN.md section 10 for why this page intentionally allows a departure
+   from the light, restrained system used everywhere else. */
 .layer-l2 {
-  --layer: #60a5fa;
-  --layer-soft: rgba(96, 165, 250, 0.16);
+  --layer: #2563eb;
+  --layer-soft: rgba(37, 99, 235, 0.12);
 }
 .layer-l3 {
-  --layer: #c4b5fd;
-  --layer-soft: rgba(167, 139, 250, 0.16);
+  --layer: #7c3aed;
+  --layer-soft: rgba(124, 58, 237, 0.12);
 }
 .layer-l4 {
-  --layer: #5eead4;
-  --layer-soft: rgba(45, 212, 191, 0.16);
+  --layer: #0d9488;
+  --layer-soft: rgba(13, 148, 136, 0.12);
 }
+/* Light (default) atmosphere for this page: the same faint red/blue glow
+   as the dark theme's, just far lower intensity over the shared light
+   canvas, so both themes read as one family. */
 body:has(.report-main) {
+  background:
+    radial-gradient(
+      900px 500px at 12% -8%,
+      rgba(185, 28, 28, 0.05),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 560px at 100% 0%,
+      rgba(37, 99, 235, 0.05),
+      transparent 60%
+    ),
+    var(--color-canvas);
+}
+body:has(.report-main[data-theme="dark"]) {
   --color-canvas: #080d19;
   --color-surface: #0f1729;
   --color-surface-subtle: #0b1220;
@@ -328,6 +365,21 @@ body:has(.report-main) {
 body:has(.report-main) .site-header {
   background: transparent;
   border-bottom-color: transparent;
+}
+/* Dark theme's brighter, more pastel layer hues -- readable on the dark
+   card backgrounds; the light theme uses deeper, more saturated versions
+   of the same three hues (defined above) instead. */
+body:has(.report-main[data-theme="dark"]) .layer-l2 {
+  --layer: #60a5fa;
+  --layer-soft: rgba(96, 165, 250, 0.16);
+}
+body:has(.report-main[data-theme="dark"]) .layer-l3 {
+  --layer: #c4b5fd;
+  --layer-soft: rgba(167, 139, 250, 0.16);
+}
+body:has(.report-main[data-theme="dark"]) .layer-l4 {
+  --layer: #5eead4;
+  --layer-soft: rgba(45, 212, 191, 0.16);
 }
 .severity-danger {
   --sev: var(--danger);
@@ -498,16 +550,28 @@ body:has(.report-main) .site-header {
 .tone-tabs span.is-current.safe {
   border-color: transparent;
   background: var(--color-safe);
-  color: #052e13;
+  color: #ffffff;
 }
 .tone-tabs span.is-current.caution {
   border-color: transparent;
   background: var(--color-caution);
-  color: #402700;
+  color: #ffffff;
 }
 .tone-tabs span.is-current.danger {
   border-color: transparent;
   background: var(--color-danger);
+  color: #ffffff;
+}
+/* Dark theme's tone colors are bright pastels meant to read on a dark
+   card, so the current tab needs dark text for contrast there instead of
+   the white text the deeper light-theme tone colors use. */
+body:has(.report-main[data-theme="dark"]) .tone-tabs span.is-current.safe {
+  color: #052e13;
+}
+body:has(.report-main[data-theme="dark"]) .tone-tabs span.is-current.caution {
+  color: #402700;
+}
+body:has(.report-main[data-theme="dark"]) .tone-tabs span.is-current.danger {
   color: #4a0a0a;
 }
 

@@ -14,6 +14,8 @@ import {
   LoaderCircle,
   Info,
   ChevronDown,
+  Sun,
+  Moon,
 } from "lucide-react";
 import type { Verdict } from "../lib/types";
 import { verdicts } from "../data/results";
@@ -29,13 +31,36 @@ export function Brand() {
     </div>
   );
 }
-export function Header() {
+export function Header({ right }: { right?: ReactNode } = {}) {
   return (
     <header className="site-header">
       <div className="header-inner">
         <Brand />
+        {right}
       </div>
     </header>
+  );
+}
+export function ThemeToggle({
+  theme,
+  onToggle,
+}: {
+  theme: "light" | "dark";
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={onToggle}
+      aria-label={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+    >
+      {theme === "dark" ? (
+        <Sun size={17} strokeWidth={2} />
+      ) : (
+        <Moon size={17} strokeWidth={2} />
+      )}
+    </button>
   );
 }
 export function Button({

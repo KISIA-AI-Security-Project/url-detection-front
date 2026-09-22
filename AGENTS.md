@@ -42,6 +42,8 @@ It governs:
 
 Do NOT replace values defined in `DESIGN.md` with arbitrary alternatives.
 
+**Detailed analysis page exception:** the detailed analysis page follows `DESIGN.md` §10 (Visual Refresh — Dark Console). Where §10 conflicts with older statements in this file, or with §2's general guidance against dark backgrounds, glow effects, and monospace-everywhere, or with §8's one-column layout rule, §10 wins for that page only. The popup and loading / error screens are unchanged. The user flow, information order, and accordion behavior in `UI_SPEC.md` are unchanged. This page uses a true page-level two-column shell (`DESIGN.md` §10.3, `.report-shell` / `.report-sidebar` / `.report-content`): a sticky left sidebar (`minmax(240px, 280px)`) holds the verdict, tone tabs (§10.4), analysis facts, and target URL, while the right content column holds the layer coverage summary (§10.5), key evidence, and detailed analysis — collapsing to one stacked column below 960px. This is the only page where the sidebar spans the full page height instead of living inside a card. This is a deliberate, documented set of exceptions — do not extend the dark theme or the page-level sidebar layout to other pages, and do not fabricate data (per-check score bars, redirect-path diagrams, etc.) that isn't present in the real data model, even if a reference mockup shows it.
+
 ---
 
 ## Priority 2 — `UI_SPEC.md`

@@ -6,3 +6,8 @@ dist-extension/
 playwright-report/
 test-results/
 .DS_Store
+
+.claude/
+.impeccable/
+.playwright-mcp/
+Claude outputs/

@@ -332,6 +332,8 @@ border: 1px solid var(--color-border-strong);
 
 일반 카드에는 shadow를 사용하지 않는다.
 
+단, 상세 분석 페이지는 §10의 예외 규칙(판정 카드와 콘텐츠 박스의 옅은 shadow)을 따른다.
+
 Floating UI에서만 허용:
 
 ```css
@@ -927,3 +929,129 @@ Raw Data가 사용자용 판정 설명보다 시각적으로 강해지면 안 �
 ### Popup type scale refinement
 
 Per the user's follow-up, reduce popup type one step: brand 13px, verdict 22px, summary/buttons 12px, input/evidence/labels 11px, and small notices 10px. Keep footnotes at 10px. Preserve the input/button hit areas and the latest single `스캔 중...` loading state from `UI_SPEC.md`.
+
+---
+
+## 10. Detailed Analysis Page — Visual Refresh (Dark Console)
+
+상세 분석 페이지(`/`, `/analysis/{job_id}`의 완료 결과 화면)에만 적용한다. Popup과 로딩·오류 상태 화면은 기존 규칙을 유지한다.
+화면 구조와 UX 흐름은 `UI_SPEC.md`를 그대로 따르며, 이 절은 **시각 표현만** 바꾼다.
+앞선 절과 충돌하는 부분은 상세 분석 페이지에서 이 절이 우선한다.
+
+**의도적 예외:** 이 절은 §2의 "피해야 할 방향" 중 어두운 배경·글로우 사용을 팀의 명시적 요청으로 이 페이지에 한해 뒤집는다. 그 대신 §2가 실제로 경계하는 문제들 — 숫자형 위험도 게이지, 모든 기술 라벨에 monospace 사용, 카드 남발, 과도한 빨간 배경 — 은 이 절에서도 그대로 지킨다. 판정은 여전히 3단계 카테고리(안전/주의/위험)로만 표현하고, 실제 데이터에 없는 값(예: 개별 검사 항목별 통과/실패 시각화, 존재하지 않는 리다이렉트 경로)은 절대 새로 만들어 보여주지 않는다.
+
+### 10.1 Direction
+
+- 어두운 콘솔/터미널 톤의 화면. 보안 도구를 다루고 있다는 인상을 판정 신뢰도로 전달한다.
+- 페이지 배경은 짙은 네이비이며, 좌상단에 위험(빨강) 톤, 우상단에 중립(파랑) 톤의 은은한 radial glow를 얹는다. 판정 톤과 무관하게 고정된 대기(atmosphere)이며, 판정 색상 자체는 여전히 카드·텍스트에서만 전달한다.
+- 페이지는 좌우 2열 구조다: 왼쪽은 판정 요약이 고정(sticky)된 좁은 사이드바, 오른쪽은 근거 목록이 스크롤되는 넓은 콘텐츠 영역이다. 이 페이지에 한해 §8의 한 열 원칙을 되돌린다 — 10.3에서 그 이유와 범위를 명시한다.
+- 카드는 늘리지 않는다. 판정 영역(사이드바, 카드 테두리 없음), 레이어별 커버리지 요약 3칸, 핵심 근거 카드 1개, 상세 분석 아코디언만 사용한다 (§2, §22 원칙 유지).
+- 파란색은 focus 표시와 L2 레이어 색에만 사용한다. 선택·펼침 상태는 blue 대신 중립색(ink)을 쓴다.
+
+### 10.2 Page background
+
+```text
+--color-canvas  #080d19  (페이지 바탕)
+--color-surface #0f1729  (카드 배경)
+
+background:
+  radial-gradient(900px 500px at 12% -8%,  rgba(239,68,68,0.16), transparent 60%),
+  radial-gradient(900px 560px at 100% 0%,  rgba(59,130,246,0.14), transparent 60%),
+  var(--color-canvas)
+```
+
+기존의 판정 톤별 wash는 더 이상 쓰지 않는다 — 배경 자체가 이미 짙은 색이라 톤별 wash가 잘 보이지 않고, 판정 영역의 accent 색(10.3)이 판정 색을 충분히 전달한다.
+
+헤더(`.site-header`)는 이 페이지에서만 고유 배경·테두리를 지우고 페이지 배경에 바로 얹힌다 — popup과 미리보기 화면의 헤더는 그대로 흰 배경 서페이스를 유지한다.
+
+### 10.3 Page shell: verdict sidebar + findings content
+
+판정 요약, 분석 정보, 대상 URL은 왼쪽의 좁은 사이드바에 고정하고, 레이어 커버리지·핵심 근거·상세 분석은 오른쪽의 넓은 콘텐츠 영역에서 스크롤한다. 사이드바는 화면 스크롤에 따라 함께 붙어있다(sticky). 이것이 이 페이지가 §8의 한 열 원칙을 되돌리는 지점이며, 팀 요청에 따른 의도적 예외다.
+
+```text
+.report-shell     grid, columns: minmax(240px, 280px) 1fr, gap 32px (--space-8)
+.report-sidebar   position: sticky, flex column, gap 24px (--space-6)
+.report-content   나머지 오른쪽 영역
+```
+
+화면 폭 `960px` 이하에서는 1열로 쌓인다 (사이드바가 위, 콘텐츠가 아래) — §8이 다른 화면 폭에서 쓰는 것과 같은 반응형 규칙이다.
+
+사이드바 내부는 카드 테두리 없이 세로로 쌓는다: "최종 판정" 라벨 → 판정 아이콘 + 판정 텍스트(`clamp(40px, 9vw, 56px)`) → 안전 등급 탭(10.4) → 판정 설명 → (있는 경우) 분석 한계 → 구분선 → 분석 정보 3줄(10.3a) → 구분선 → 대상 URL. 오른쪽 위 방패 워터마크, emblem, 판정 텍스트 색은 이전과 같은 값을 유지한다 (색 토큰만 다크로 바뀐다).
+
+**10.3a 분석 정보 (사이드바)**
+
+분석 완료 시각·소요 시간·분석 범위 3가지만 한 줄씩 표시한다 (아이콘 + 라벨, 오른쪽에 값). 판정 신뢰도는 이 사이드바에는 표시하지 않는다 — 팀이 준 참고 화면에 포함되지 않아 뺐다; 데이터 자체는 계속 계산되며 다른 화면에서 필요해지면 다시 꺼내 쓸 수 있다.
+
+```text
+.sidebar-fact         flex row, justify space-between
+.sidebar-fact-label   아이콘(22px 칩) + 라벨, --mute
+.sidebar-fact-value   값, --ink, 오른쪽 정렬
+```
+
+분석 범위 줄의 값은 레이어 칩(L2/L3/L4)이다. 일부 레이어가 미실행이거나 시험용 데이터를 쓴 경우, 그 아래 작은 텍스트로 "미실행 영역" / "시험용 데이터 사용" 목록을 덧붙인다 (기존 `report.coverage.skipped` / `stubbed` 그대로, 새 데이터 아님).
+
+대상 URL은 사이드바 맨 아래 박스에 둔다. 박스 배경은 `var(--canvas)`(페이지 바탕과 같은 짙은 색)로, 사이드바 안에서 한 단계 파인 패널처럼 보이게 한다.
+
+### 10.4 Tone tabs (categorical)
+
+판정 텍스트 아래에 안전·주의·위험 3칸짜리 탭을 둔다. **숫자형 게이지가 아니다** — 개별 검사 항목의 점수를 합산하거나 시각화하지 않으며, 오직 `report.tone`(현재 판정이 세 값 중 어디에 해당하는지)만 표시한다. 데이터에 없는 세분화된 수치는 만들지 않는다는 원칙(§2, §10 상단 예외 조항)을 지키기 위한 장치다.
+
+```text
+.tone-tabs        grid, 3 columns, gap 6px
+.tone-tabs span   기본: 테두리만 있는 pill, --faint 텍스트
+현재 톤의 칸만 해당 판정색을 배경으로 꽉 채우고, 그 색 위에서 읽히도록 어두운 텍스트를 쓴다
+  (safe #052e13 / caution #402700 / danger #4a0a0a — 밝은 판정색 배경 위 텍스트이므로
+  다른 다크 테마 텍스트 색 규칙과 다르게 의도적으로 어둡다).
+```
+
+`report.tone`이 `unknown`(판단 불가)인 경우 탭을 표시하지 않는다 — 세 등급 중 어디에도 속하지 않는 상태를 억지로 위치시키지 않기 위함이다. 장식 요소이므로 스크린리더에서는 숨긴다(이미 판정 텍스트로 같은 정보를 전달한다).
+
+### 10.5 Layer coverage summary (콘텐츠 영역 상단)
+
+콘텐츠 영역 맨 위, 핵심 근거보다 먼저 레이어(L2/L3/L4)별 요약 카드 3개를 나란히 배치한다. **모두 실제 값이다**: "검사 항목 수"는 `layers[].checked`(기존에 상세 분석 아코디언 안에서도 쓰던 값), "이상 건수"는 해당 레이어에 속한 `evidence`의 개수 — 새로 만든 숫자가 아니라 페이지 다른 곳에서도 쓰는 값을 요약해 보여줄 뿐이다.
+
+```text
+.layer-summary-row      grid, 3 columns (700px 이하에서 1열)
+.layer-summary-card     surface 배경, radius 14px
+.layer-summary-bar      height 6px, radius pill, 기본 배경 --color-border
+  danger segment  너비 = (해당 레이어 danger 근거 수 / checked) × 100%
+  caution segment 너비 = (해당 레이어 caution 근거 수 / checked) × 100%
+```
+
+두 세그먼트 폭의 합이 "이상 비율"이고, 나머지는 특이사항 없이 통과한 검사 비율이다 — 개별 검사 항목 하나하나의 통과/실패를 표시하는 것이 아니라 두 실제 카운트(검사 수·근거 수)의 비율만 그린다는 점에서 §2·상단 예외 조항이 금지하는 "존재하지 않는 세분화된 시각화"가 아니다.
+
+상세 분석 데이터가 없는 응답(판단 불가/시험용/접근 제한)에서는 이 요약 자체를 표시하지 않는다 — 실행되지 않은 분석에 대해 근거 없는 카운트를 보여주지 않기 위함이다.
+
+### 10.6 Key evidence
+
+- 하나의 카드(radius `16px`) 안에 행으로 나열한다. 행마다 별도 카드로 나누지 않는다.
+- 행은 5열 grid(`36px minmax(0,1fr) auto auto auto` — 아이콘 · 제목/설명 · 심각도 pill · 레이어 칩 · chevron)로 정렬해, 여러 행이 세로로 표처럼 열이 맞춰 보이게 한다.
+- 심각도는 아이콘에 더해 눈에 보이는 pill(`안전/주의/위험` 텍스트 + 점)로 전달한다 — 이전에는 스크린리더 전용 텍스트로만 전달했으나, 참고 화면과 맞추기 위해 시각적으로도 드러낸다.
+- hover는 배경색 변화만 사용한다. 이동·확대 효과는 사용하지 않는다.
+
+### 10.7 Analysis layers & evidence items
+
+- 레이어: `surface` 배경(`#0f1729`), radius `16px`. 열린 레이어는 `border-strong` + 옅은 layer color shadow
+- 열린 레이어의 count badge는 layer 색 배경 + 흰 글씨
+- 근거 항목: `surface-subtle` 배경(`#0b1220`, 카드보다 한 단계 어두운 파인 패널), radius `12px`, 왼쪽에 `3px` 심각도 accent 선
+- 심각도 pill 앞에 `6px` 점을 붙인다.
+
+### 10.7a Layer hues (L2 / L3 / L4)
+
+다크 배경에서 충분한 대비를 갖도록 라이트 테마보다 밝은 색으로 바꾼다. 색상환의 의미(파랑=네트워크, 보라=콘텐츠, 청록=클로킹)는 유지한다.
+
+```text
+L2 네트워크  Network   --layer #60a5fa  soft rgba(96,165,250,.16)
+L3 콘텐츠    FileText  --layer #c4b5fd  soft rgba(167,139,250,.16)
+L4 클로킹    Eye       --layer #5eead4  soft rgba(45,212,191,.16)
+```
+
+- 판정(위험·주의·안전)의 의미 색과 겹치지 않는 색만 사용한다.
+
+### 10.8 Console typography (limited monospace exception)
+
+§2는 "모든 기술 라벨에 monospace 사용"을 피하라고 하지만, 이 페이지는 콘솔 느낌을 위해 **레이어 태그(L2/L3/L4 칩)에 한해서만** monospace를 쓴다. URL·해시 등 원래부터 monospace였던 기술값(`--font-mono`, §16)은 그대로다. 본문·제목·근거 설명 등 나머지 텍스트는 계속 `--font-ui` (Inter Variable)를 쓴다 — 라벨 전체를 monospace로 바꾸는 것은 여전히 피한다.
+
+### 10.9 Not changed
+
+Popup, 로딩·오류 화면, 타이포그래피 스케일(§4)의 기본값, spacing(§5), 접근성 규칙, 애니메이션 목록은 바꾸지 않는다. 페이지 제목("분석 결과") h1은 문서 구조·접근성을 위해 계속 존재하지만, 참고 화면에 맞춰 시각적으로는 숨긴다(`sr-only`).

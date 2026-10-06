@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Check } from "lucide-react";
-import { Brand, Button, Spinner, StatusIcon } from "../components/ui";
+import { Brand, Button, Spinner } from "../components/ui";
 import "./popup.css";
 import { rankEvidence, resultFor, verdicts } from "../data/results";
 import { analysisService } from "../lib/mock-service";
@@ -102,10 +101,7 @@ export function PopupPage() {
     }
   };
   const fastEvidence = result
-    ? rankEvidence(
-        result.evidence.filter((e) => e.layer !== "L4"),
-        3,
-      )
+    ? rankEvidence(result.evidence, 3)
     : [];
   return (
     <div
@@ -120,16 +116,23 @@ export function PopupPage() {
             <form onSubmit={start} noValidate>
               <label htmlFor="url-input">분석할 URL</label>
               <div className={`url-input-wrap ${error ? "invalid" : ""}`}>
-                <input
+                {/* Grows with its content so the full URL is always visible. */}
+                <textarea
                   id="url-input"
-                  type="text"
+                  rows={1}
                   inputMode="url"
                   autoComplete="off"
                   spellCheck={false}
                   value={url}
                   onChange={(e) => {
-                    setUrl(e.target.value);
+                    setUrl(e.target.value.replace(/[\r\n]+/g, ""));
                     setError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      start();
+                    }
                   }}
                   onBlur={() => {
                     if (url.trim() && !normalizeUrl(url))
@@ -174,9 +177,6 @@ export function PopupPage() {
               >
                 <div role="status">
                   <h1 className={`popup-status-row ${result.initial}`}>
-                    <span className={`popup-status-icon ${result.initial}`}>
-                      <StatusIcon verdict={result.initial} size={24} />
-                    </span>
                     {verdicts[result.initial].text}
                   </h1>
                   <p className="popup-summary">{result.fastSummary}</p>
@@ -196,10 +196,7 @@ export function PopupPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p>
-                      <Check size={15} />
-                      특이사항이 확인되지 않았습니다.
-                    </p>
+                    <p>특이사항이 확인되지 않았습니다.</p>
                   )}
                 </div>
                 {result.partial && (

@@ -46,10 +46,6 @@
   width: 24px;
   height: 24px;
 }
-.popup .brand-mark svg {
-  width: 16px;
-  height: 16px;
-}
 .popup .brand-dot {
   display: inline;
 }
@@ -61,10 +57,16 @@
   font-weight: 600;
   margin-bottom: var(--space-2);
 }
-.popup .url-input-wrap input {
+.popup .url-input-wrap textarea {
+  display: block;
   width: 100%;
-  height: 42px;
-  padding: 0 var(--space-3);
+  min-height: 42px;
+  padding: 11px var(--space-3);
+  resize: none;
+  field-sizing: content;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-control);
   background: var(--color-surface);
@@ -73,21 +75,21 @@
   font-size: var(--text-tech-label);
   outline: none;
 }
-.popup .url-input-wrap input:hover:not(:disabled) {
+.popup .url-input-wrap textarea:hover:not(:disabled) {
   border-color: var(--color-text-muted);
 }
-.popup .url-input-wrap input:focus {
-  border-color: var(--color-blue);
+.popup .url-input-wrap textarea:focus {
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-focus);
 }
-.popup .url-input-wrap input:disabled {
+.popup .url-input-wrap textarea:disabled {
   background: var(--color-surface-subtle);
   color: var(--color-text-muted);
 }
-.popup .url-input-wrap input::placeholder {
+.popup .url-input-wrap textarea::placeholder {
   color: var(--color-text-muted);
 }
-.popup .url-input-wrap.invalid input {
+.popup .url-input-wrap.invalid textarea {
   border-color: var(--color-danger);
 }
 .popup .input-error {
@@ -137,22 +139,14 @@
   font-weight: 750;
   letter-spacing: -0.5px;
 }
-.popup .popup-status-icon {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  flex-shrink: 0;
+.popup .popup-status-row.danger {
+  color: var(--danger);
 }
-.popup-status-icon.caution {
-  background: var(--color-caution-soft);
+.popup .popup-status-row.caution {
+  color: var(--caution);
 }
-.popup-status-icon.safe {
-  background: var(--color-safe-soft);
-}
-.popup-status-icon.danger {
-  background: var(--color-danger-soft);
+.popup .popup-status-row.safe {
+  color: var(--safe);
 }
 .popup .popup-summary {
   font-size: var(--text-body);
@@ -184,14 +178,10 @@
 .popup .fast-result > :nth-child(6) {
   animation-delay: 270ms;
 }
-.popup .fast-result .popup-status-icon {
-  animation: popup-verdict-icon-in 240ms ease-out 20ms both;
-}
 .popup-evidence {
-  background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 .popup-evidence h2 {
   font-size: var(--text-body);
@@ -221,7 +211,7 @@
   height: var(--space-1);
   margin-top: var(--space-2);
   border-radius: var(--radius-pill);
-  background: var(--color-text-muted);
+  background: var(--ink-40);
   flex-shrink: 0;
 }
 .popup-evidence > p {
@@ -230,20 +220,14 @@
   gap: var(--space-2);
   font-size: var(--text-body);
   line-height: 1.6;
-  color: var(--color-safe);
-}
-.popup-evidence > p svg {
-  flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 .popup-partial {
-  margin-top: var(--space-3);
-  padding: var(--space-2);
-  border: 1px solid var(--color-caution-border);
-  background: var(--color-caution-soft);
-  border-radius: var(--radius-md);
+  margin-top: var(--space-2);
   font-size: var(--text-meta);
+  font-weight: 600;
   line-height: 1.5;
-  color: var(--color-caution);
+  color: var(--caution-text);
 }
 .popup .deep-prompt {
   font-size: var(--text-body);
@@ -314,14 +298,6 @@
     transform: translateY(0);
   }
 }
-@keyframes popup-verdict-icon-in {
-  from {
-    transform: scale(0.97);
-  }
-  to {
-    transform: scale(1);
-  }
-}
 @keyframes popup-loading-icon-pulse {
   0%,
   100% {
@@ -349,8 +325,7 @@
   .popup .fast-loading .spinner,
   .popup .fast-loading h2,
   .popup .fast-result.fade-in,
-  .popup .fast-result > *,
-  .popup .fast-result .popup-status-icon {
+  .popup .fast-result > * {
     animation: none;
   }
 }

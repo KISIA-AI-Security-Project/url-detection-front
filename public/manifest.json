@@ -3,6 +3,22 @@
   "name": "LinkGuard — URL 분석 (목업)",
   "version": "0.1.0",
   "description": "URL 분석 UI 목업입니다. 실제 보안 검사를 수행하지 않습니다.",
-  "permissions": ["activeTab"],
-  "action": { "default_title": "LinkGuard", "default_popup": "popup.html" }
+  "permissions": [
+    "activeTab"
+  ],
+  "action": {
+    "default_title": "LinkGuard",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
 }

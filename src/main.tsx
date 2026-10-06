@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { AnalysisPage } from "./pages/AnalysisPage";
+import { DeepAnalysisPage } from "./pages/DeepAnalysisPage";
 import { PopupPage } from "./pages/PopupPage";
 import { PreviewPage } from "./pages/PreviewPage";
 import "./fonts.css";
@@ -30,15 +31,18 @@ class ErrorBoundary extends Component<
     );
   }
 }
-const path = window.location.hash.startsWith("#/analysis/")
+const path = /^#\/(analysis|deep)\//.test(window.location.hash)
   ? window.location.hash.slice(1)
   : window.location.pathname;
 const match = path.match(/^\/analysis\/([^/]+)\/?$/);
+const deepMatch = path.match(/^\/deep\/([^/]+)\/?$/);
 const page =
   path === "/popup.html" || path === "/popup" ? (
     <PopupPage />
   ) : path === "/preview" ? (
     <PreviewPage />
+  ) : deepMatch ? (
+    <DeepAnalysisPage id={decodeURIComponent(deepMatch[1])} />
   ) : match ? (
     <AnalysisPage id={decodeURIComponent(match[1])} />
   ) : path === "/" || path === "/index.html" ? (

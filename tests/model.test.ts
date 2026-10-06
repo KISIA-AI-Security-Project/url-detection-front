@@ -7,7 +7,7 @@ import {
   DEEP_DURATION,
   demoJob,
 } from "../src/lib/mock-service";
-import { defaultLayer, rankEvidence, resultFor } from "../src/data/results";
+import { rankEvidence, resultFor } from "../src/data/results";
 beforeEach(() => {
   const values = new Map<string, string>();
   vi.stubGlobal("localStorage", {
@@ -79,24 +79,30 @@ describe("persistent mock jobs", () => {
   });
 });
 describe("evidence presentation", () => {
-  it("selects the highest count, with L4 > L3 > L2 on ties", () => {
+  it("keeps fast analysis within L0–L3", () => {
     const evidence = resultFor(demoJob()).evidence;
-    expect(defaultLayer(evidence)).toBe("L3");
     expect(
-      defaultLayer(
-        evidence.filter((e) =>
-          ["redirect", "form-action", "cloaking"].includes(e.id),
-        ),
-      ),
-    ).toBe("L4");
-    expect(defaultLayer([])).toBe("L4");
+      evidence.every((e) => ["L0", "L1", "L2", "L3"].includes(e.layer)),
+    ).toBe(true);
+  });
+  it("links every reason to confirmed facts only", () => {
+    for (const scenario of ["danger", "caution", "partial"] as const) {
+      const result = resultFor(demoJob(scenario));
+      const ids = new Set(result.evidence.map((e) => e.id));
+      expect(result.reasons.length).toBeGreaterThan(0);
+      for (const reason of result.reasons) {
+        expect(reason.factIds.length).toBeGreaterThan(0);
+        expect(reason.factIds.every((id) => ids.has(id))).toBe(true);
+      }
+    }
+    expect(resultFor(demoJob("safe")).reasons).toHaveLength(0);
   });
   it("ranks severity before confidence and caps the visible results", () => {
     const evidence = resultFor(demoJob()).evidence;
     expect(rankEvidence(evidence, 3).map((e) => e.id)).toEqual([
       "form-action",
-      "cloaking",
       "brand",
+      "redirect",
     ]);
     expect(rankEvidence(evidence, 5)).toHaveLength(5);
   });

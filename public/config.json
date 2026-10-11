@@ -1,0 +1,9 @@
+{
+  "api_base": "/api",
+  "auth": {
+    "domain": "https://team5-web-20261006-998301375101.auth.ap-northeast-2.amazoncognito.com",
+    "client_id": "11v9bek84i6fakpvhtk5nk4sth",
+    "redirect_uri": "https://d2gmygchoew9ed.cloudfront.net/",
+    "scope": "openid email team5-web/analysis"
+  }
+}

@@ -1,5 +1,7 @@
 # DESIGN.md
 
+> 2026-10-06 실제 서비스 화면은 사용자 승인 내용을 정리한 [SERVICE-DESIGN.md](SERVICE-DESIGN.md)를 우선한다. 팀원 최신 구현의 따뜻한 배경과 글래스 헤더·버튼을 유지한다.
+
 ## 1. Purpose
 
 본 문서는 Chrome Extension 기반 악성 URL 분석 서비스의 **시각 디자인 시스템**을 정의한다.

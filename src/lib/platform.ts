@@ -17,6 +17,11 @@ export function analysisHref(id: string): string {
     ? chrome.runtime.getURL(`index.html#/analysis/${encodeURIComponent(id)}`)
     : `/analysis/${encodeURIComponent(id)}`;
 }
+export function deepHref(id: string): string {
+  return isExtension()
+    ? chrome.runtime.getURL(`index.html#/deep/${encodeURIComponent(id)}`)
+    : `/deep/${encodeURIComponent(id)}`;
+}
 export function openAnalysis(id: string): boolean {
   const url = analysisHref(id);
   if (isExtension()) {

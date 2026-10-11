@@ -1,10 +1,15 @@
 import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { AnalysisPage } from "./pages/AnalysisPage";
+import { DeepAnalysisPage } from "./pages/DeepAnalysisPage";
 import { PopupPage } from "./pages/PopupPage";
 import { PreviewPage } from "./pages/PreviewPage";
+import { ServicePage } from "./pages/ServicePage";
+import { DesignPreviewPage } from "./pages/DesignPreviewPage";
+import { MainPreviewPage } from "./pages/MainPreviewPage";
 import "./fonts.css";
 import "./styles.css";
+import "./service/service.css";
 class ErrorBoundary extends Component<
   { children: ReactNode },
   { error: boolean }
@@ -30,22 +35,46 @@ class ErrorBoundary extends Component<
     );
   }
 }
-const path = window.location.hash.startsWith("#/analysis/")
+const path = /^#\/(analysis|deep)\//.test(window.location.hash)
   ? window.location.hash.slice(1)
   : window.location.pathname;
 const match = path.match(/^\/analysis\/([^/]+)\/?$/);
+const deepMatch = path.match(/^\/deep\/([^/]+)\/?$/);
 const page =
-  path === "/popup.html" || path === "/popup" ? (
+  (import.meta.env.DEV || import.meta.env.MODE === "extension") &&
+  (path === "/popup.html" || path === "/popup") ? (
     <PopupPage />
-  ) : path === "/preview" ? (
+  ) : import.meta.env.DEV && path === "/preview" ? (
     <PreviewPage />
-  ) : match ? (
+  ) : import.meta.env.DEV && path === "/design-preview" ? (
+    new URLSearchParams(window.location.search).get("screen") === "home" ? (
+      <MainPreviewPage />
+    ) : (
+      <DesignPreviewPage />
+    )
+  ) : import.meta.env.DEV && deepMatch ? (
+    <DeepAnalysisPage id={decodeURIComponent(deepMatch[1])} />
+  ) : match && /^[0-9a-f]{32}$/.test(match[1]) ? (
+    <ServicePage />
+  ) : import.meta.env.DEV && match ? (
     <AnalysisPage id={decodeURIComponent(match[1])} />
-  ) : path === "/" || path === "/index.html" ? (
+  ) : import.meta.env.DEV && path === "/original" ? (
     <AnalysisPage />
+  ) : path === "/" || path === "/index.html" || path === "/service" ? (
+    <ServicePage />
   ) : (
-    <AnalysisPage id="not-found" />
+    <>
+      <ServiceNotFound />
+    </>
   );
+function ServiceNotFound() {
+  return (
+    <main className="state-main">
+      <h1>화면을 찾을 수 없습니다.</h1>
+      <a href="/">분석 요청으로 돌아가기</a>
+    </main>
+  );
+}
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>{page}</ErrorBoundary>

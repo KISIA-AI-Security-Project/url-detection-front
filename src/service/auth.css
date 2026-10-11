@@ -1,0 +1,222 @@
+.service-auth {
+  width: min(100%, 440px);
+  margin: 32px auto 80px;
+}
+.auth-back {
+  min-height: 44px;
+  margin-bottom: 24px;
+}
+.auth-intro {
+  margin-bottom: 24px;
+}
+.auth-intro h1 {
+  font-size: 26px;
+  line-height: 1.4;
+  letter-spacing: -0.04em;
+  color: var(--ink-strong);
+  margin: 0 0 12px;
+  word-break: keep-all;
+}
+.auth-intro h1:focus {
+  outline: none;
+}
+.auth-intro > p:last-child {
+  line-height: 1.7;
+  color: var(--ink-64);
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.auth-form {
+  display: grid;
+  gap: 24px;
+}
+.auth-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.auth-field label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.auth-field label span {
+  font-weight: 400;
+  color: var(--ink-64);
+}
+.auth-field input {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.55);
+  font: inherit;
+}
+.auth-field input[aria-invalid="true"] {
+  border-color: var(--danger-text);
+}
+.auth-field input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.auth-field input:disabled {
+  opacity: 0.6;
+}
+.auth-code {
+  letter-spacing: 0.14em;
+}
+.auth-code::placeholder {
+  letter-spacing: normal;
+}
+.auth-rules {
+  list-style: none;
+  padding: 0;
+  margin: 2px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: var(--ink-64);
+}
+.auth-rules li {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.auth-rules li svg {
+  opacity: 0.25;
+}
+.auth-rules li[data-valid="true"] {
+  color: var(--ink-strong);
+}
+.auth-rules li[data-valid="true"] svg {
+  opacity: 1;
+}
+.auth-note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-64);
+  margin: 0;
+  word-break: keep-all;
+}
+.auth-error {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--danger-text);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.auth-submit.button {
+  width: 100%;
+  min-height: 48px;
+}
+.auth-links {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  font-size: 13px;
+  color: var(--ink-64);
+}
+.auth-links p {
+  margin: 0;
+}
+.auth-links .text-button,
+.auth-recovery {
+  min-height: 44px;
+}
+@media (max-width: 600px) {
+  .service-auth {
+    margin-top: 8px;
+  }
+  .auth-back {
+    margin-bottom: 24px;
+  }
+  .auth-intro h1 {
+    font-size: 24px;
+  }
+}
+
+.auth-form > .text-button {
+  min-height: 44px;
+}
+
+.auth-inline-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 8px;
+  align-items: center;
+}
+.auth-inline-control input {
+  min-width: 0;
+}
+.auth-inline-control .button {
+  min-height: 48px;
+  padding-inline: 12px;
+}
+.auth-inline-code {
+  margin-top: 8px;
+}
+.auth-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 48px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink-strong);
+}
+.auth-password-control {
+  position: relative;
+  min-width: 0;
+}
+.auth-password-control input {
+  padding-right: 56px;
+}
+.auth-password-toggle {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-64);
+  cursor: pointer;
+}
+.auth-password-toggle:hover {
+  color: var(--ink-strong);
+  background: rgba(255, 255, 255, 0.5);
+}
+.auth-password-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.auth-password-toggle:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.auth-password-help {
+  justify-self: end;
+  min-height: 44px;
+  font-size: 13px;
+}
+.auth-header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--ink-64);
+}

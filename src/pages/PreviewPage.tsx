@@ -1,7 +1,7 @@
 import { Header, Footer } from "../components/ui";
-import { ArrowUpRight } from "lucide-react";
 import { seedDemo } from "../lib/mock-service";
-import { analysisHref } from "../lib/platform";
+import { analysisHref, deepHref } from "../lib/platform";
+import { investigationService } from "../lib/mock-investigation";
 import type { Scenario } from "../lib/types";
 export function PreviewPage() {
   const show = (scenario: Scenario, running = false) => {
@@ -44,13 +44,12 @@ export function PreviewPage() {
                     "분석 실패",
                   ][i]
                 }
-                <ArrowUpRight size={16} />
               </a>
             ))}
           </div>
         </section>
         <section>
-          <h2>심층 분석 결과</h2>
+          <h2>고속 분석 결과</h2>
           <div className="preview-options">
             {(
               [
@@ -77,7 +76,6 @@ export function PreviewPage() {
                     "접근 제한 · 미실행 영역",
                   ][i]
                 }
-                <ArrowUpRight size={16} />
               </button>
             ))}
           </div>
@@ -97,9 +95,30 @@ export function PreviewPage() {
                     "심층 분석 실패",
                   ][i]
                 }
-                <ArrowUpRight size={16} />
               </button>
             ))}
+          </div>
+        </section>
+        <section>
+          <h2>L4 심층 분석</h2>
+          <p>
+            누를 때마다 새 진행이 처음부터 시작됩니다. 약 20초 뒤 저장 완료까지
+            진행됩니다.
+          </p>
+          <div className="preview-options">
+            <button
+              onClick={() =>
+                window.location.assign(
+                  deepHref(
+                    investigationService.start(
+                      "https://account-secure.example/login/verify",
+                    ).id,
+                  ),
+                )
+              }
+            >
+              심층 분석 진행 화면
+            </button>
           </div>
         </section>
         <Footer preview />

@@ -9,6 +9,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/deep/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/preview",
       "destination": "/index.html"
     },

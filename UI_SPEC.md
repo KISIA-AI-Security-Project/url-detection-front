@@ -1,5 +1,7 @@
 # UI_SPEC.md
 
+> 2026-10-06 실제 웹 서비스의 화면 구조와 API 연결은 [SERVICE-DESIGN.md](SERVICE-DESIGN.md)를 우선한다. 아래 확장 프로그램/목업 설명은 기존 미리보기의 참고 자료다.
+
 ## 1. 문서 목적
 
 본 문서는 Chrome Extension 기반 URL 분석 서비스의 UI/UX 구현 명세를 정의한다.

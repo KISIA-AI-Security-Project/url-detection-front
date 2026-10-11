@@ -2,7 +2,8 @@ import type {
   AnalysisJob,
   AnalysisResult,
   Evidence,
-  Layer,
+  Reason,
+  RedirectHop,
   Verdict,
 } from "../lib/types";
 import { displayHost } from "../lib/url";
@@ -22,31 +23,58 @@ export const verdicts: Record<Verdict, { text: string; description: string }> =
         "로그인 정보 전송과 의심스러운 페이지 동작이 확인되었습니다.",
     },
   };
-export const layers: {
-  id: Layer;
-  title: string;
-  subtitle: string;
-  checked: number;
-}[] = [
+const FINAL_URL =
+  "https://account-verify.example/auth/session?source=redirect&continue=%2Faccount%2Fverification%2Fconfirm";
+// Mock hops matching the "Redirect Chain" evidence (3 moves, 4 pages).
+function mockRedirectChain(url: string): RedirectHop[] {
+  return [
+    { url, domain: displayHost(url), status: 302 },
+    {
+      url: "https://track.link-redirect.example/r?id=8f2a91c4&utm_source=mail",
+      domain: "track.link-redirect.example",
+      status: 302,
+    },
+    {
+      url: "https://cdn-login-service.example/gateway?next=%2Fauth%2Fsession",
+      domain: "cdn-login-service.example",
+      status: 301,
+    },
+    { url: FINAL_URL, domain: "account-verify.example", status: 200 },
+  ];
+}
+// Mock reasons in the order a judgment would present them. Each reason is
+// kept only when at least one of its facts was confirmed for the scenario.
+const reasonTemplates: Reason[] = [
   {
-    id: "L2",
-    title: "네트워크 분석",
-    subtitle: "연결 경로와 네트워크 환경을 살펴봅니다.",
-    checked: 8,
+    id: "credential-exfil",
+    text: "로그인 정보가 현재 사이트가 아닌 외부 도메인으로 전송되도록 구성돼 있습니다.",
+    factIds: ["form-action", "hidden-form"],
   },
   {
-    id: "L3",
-    title: "콘텐츠 분석",
-    subtitle: "페이지의 콘텐츠와 정보 전송 방식을 살펴봅니다.",
-    checked: 9,
+    id: "impersonation",
+    text: "공식 서비스와 유사한 로그인 화면이 다른 도메인에서 제공됩니다.",
+    factIds: ["brand"],
   },
   {
-    id: "L4",
-    title: "클로킹 / 행동 분석",
-    subtitle: "접속 환경에 따른 변화와 실제 동작을 살펴봅니다.",
-    checked: 6,
+    id: "redirect",
+    text: "여러 도메인을 거쳐 최종 페이지로 이동합니다.",
+    factIds: ["redirect"],
+  },
+  {
+    id: "certificate",
+    text: "연결 인증서가 실제 접속 도메인과 일치하지 않습니다.",
+    factIds: ["certificate"],
   },
 ];
+function reasonsFor(found: Evidence[]): Reason[] {
+  const ids = new Set(found.map((e) => e.id));
+  return reasonTemplates
+    .map((reason) => ({
+      ...reason,
+      factIds: reason.factIds.filter((id) => ids.has(id)),
+    }))
+    .filter((reason) => reason.factIds.length > 0);
+}
 export function resultFor(job: AnalysisJob): AnalysisResult {
   const host = displayHost(job.url);
   const evidence: Evidence[] = [
@@ -58,6 +86,7 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
       order: 0,
       title: "여러 도메인을 거치는 페이지 이동",
       label: "Redirect Chain",
+      keyword: "다중 리다이렉트",
       keySummary: "최종 페이지까지 서로 다른 도메인을 거쳐 3회 이동했습니다.",
       description:
         "최종 페이지에 도달하기까지 서로 다른 도메인을 거쳐 3회 이동했습니다. 분석 대상과 다른 사이트로 연결되는 경로가 확인되었습니다.",
@@ -66,8 +95,7 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
         { key: "Redirect count", value: "3" },
         {
           key: "Final URL",
-          value:
-            "https://account-verify.example/auth/session?source=redirect&continue=%2Faccount%2Fverification%2Fconfirm",
+          value: FINAL_URL,
         },
       ],
     },
@@ -79,6 +107,7 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
       order: 1,
       title: "인증서와 접속 도메인 불일치",
       label: "TLS Certificate",
+      keyword: "인증서 불일치",
       keySummary:
         "연결 인증서의 도메인이 실제 접속 도메인과 일치하지 않습니다.",
       description:
@@ -101,6 +130,7 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
       order: 2,
       title: "외부 도메인으로 로그인 정보 전송",
       label: "Form Action Domain",
+      keyword: "로그인 정보 외부 전송",
       keySummary: "로그인 정보의 전송 대상이 현재 사이트와 다른 도메인입니다.",
       description:
         "로그인 폼의 전송 대상이 현재 사이트와 다른 도메인으로 확인되었습니다. 입력한 정보가 외부 서버로 전달될 수 있습니다.",
@@ -122,6 +152,7 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
       order: 3,
       title: "공식 서비스를 모방한 로그인 화면",
       label: "Brand Impersonation",
+      keyword: "공식 서비스 모방",
       keySummary: "공식 서비스와 유사한 화면이 다른 도메인에서 제공됩니다.",
       description:
         "공식 서비스의 로그인 화면과 유사한 콘텐츠가 발견되었지만, 해당 서비스의 공식 도메인에서 제공되는 페이지는 아닙니다.",
@@ -138,6 +169,7 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
       order: 4,
       title: "숨겨진 외부 입력 수집 요소",
       label: "Hidden Input Collector",
+      keyword: "숨겨진 입력 수집",
       keySummary:
         "화면에 보이지 않는 입력 요소가 외부 전송 폼에 포함되어 있습니다.",
       description:
@@ -147,26 +179,17 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
         { key: "Target Domain", value: "collect-account.example" },
       ],
     },
-    {
-      id: "cloaking",
-      layer: "L4",
-      severity: "danger",
-      confidence: 0.95,
-      order: 5,
-      title: "접속 환경에 따라 달라지는 콘텐츠",
-      label: "User-Agent Cloaking",
-      keySummary:
-        "일반 브라우저와 자동 분석 환경에 서로 다른 페이지가 표시됩니다.",
-      description:
-        "일반 브라우저와 자동 분석 환경에서 서로 다른 페이지가 표시되었습니다. 분석을 회피하려는 동작일 가능성이 있습니다.",
-      values: [
-        { key: "Browser response", value: "로그인 정보 입력 화면" },
-        { key: "Automated response", value: "서비스 점검 안내 화면" },
-      ],
-    },
   ];
   const isSafe = job.scenario === "safe";
   const isCaution = job.scenario === "caution";
+  const found =
+    isSafe || ["unknown", "stub", "blocked"].includes(job.scenario)
+      ? []
+      : isCaution
+        ? evidence.slice(0, 2)
+        : job.scenario === "partial"
+          ? evidence.filter((e) => e.id !== "hidden-form")
+          : evidence;
   const final: Verdict = isSafe ? "safe" : isCaution ? "caution" : "danger";
   return {
     initial: isSafe
@@ -186,14 +209,11 @@ export function resultFor(job: AnalysisJob): AnalysisResult {
           : isCaution
             ? "여러 도메인을 거치는 페이지 이동과 인증서 불일치가 확인되었습니다. 개인정보를 입력하기 전에 사이트 주소를 확인하는 것이 좋습니다."
             : "로그인 정보를 외부 도메인으로 전송하는 동작과 공식 서비스를 모방한 화면이 확인되었습니다. 여러 분석 근거를 종합했을 때 피싱 위험이 높은 것으로 판단됩니다.",
-    evidence:
-      isSafe || ["unknown", "stub", "blocked"].includes(job.scenario)
-        ? []
-        : isCaution
-          ? evidence.slice(0, 2)
-          : job.scenario === "partial"
-            ? evidence.filter((e) => e.id !== "hidden-form")
-            : evidence,
+    evidence: found,
+    reasons: reasonsFor(found),
+    redirectChain: found.some((e) => e.id === "redirect")
+      ? mockRedirectChain(job.url)
+      : [],
     partial: job.scenario === "partial",
   };
 }
@@ -206,11 +226,4 @@ export function rankEvidence(evidence: Evidence[], limit: number): Evidence[] {
         a.order - b.order,
     )
     .slice(0, limit);
-}
-export function defaultLayer(evidence: Evidence[]): Layer {
-  return (["L4", "L3", "L2"] as Layer[]).sort(
-    (a, b) =>
-      evidence.filter((e) => e.layer === b).length -
-      evidence.filter((e) => e.layer === a).length,
-  )[0];
 }

@@ -151,7 +151,7 @@ export function reportFor(job: AnalysisJob, result: AnalysisResult) {
       stub: { any: isStub, layers: isStub ? ["l2", "l3"] : [] },
       coverage: {
         layers_run: ["l0", "l1"],
-        layers_skipped: isStub ? ["l4"] : ["l2", "l3", "l4"],
+        layers_skipped: isStub ? [] : ["l2", "l3"],
         layers_stubbed: isStub ? ["l2", "l3"] : [],
       },
       judgment: {
@@ -186,7 +186,7 @@ export function reportFor(job: AnalysisJob, result: AnalysisResult) {
         : [],
     },
     coverage: {
-      layers_run: ["l2", "l3", "l4"],
+      layers_run: ["l0", "l1", "l2", "l3"],
       layers_skipped: [],
       layers_stubbed: [],
     },

@@ -1,0 +1,275 @@
+/* The main-entry proposal inherits the approved warm paper, ink and controls. */
+.entry-design {
+  padding-top: var(--space-8);
+}
+.entry-intro {
+  text-align: center;
+}
+.entry-intro h1 {
+  font-size: 40px;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+.entry-intro > p {
+  margin-top: var(--space-3);
+  font-size: 16px;
+  color: var(--ink-80);
+}
+.entry-analysis-form {
+  margin-top: var(--space-8);
+}
+.entry-url-label {
+  display: block;
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+.entry-url-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--paper) 50%, white);
+  transition: border-color 150ms;
+}
+.entry-url-control > svg {
+  flex-shrink: 0;
+  color: var(--ink-64);
+}
+.entry-url-control:focus-within {
+  border-color: var(--ink);
+}
+.entry-url-control.has-error {
+  border-color: var(--danger-text);
+}
+.entry-url-control input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: var(--space-2) 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+}
+.entry-url-control input::placeholder {
+  color: var(--ink-64);
+}
+.entry-url-control input:disabled {
+  cursor: not-allowed;
+}
+.entry-url-control .entry-submit {
+  flex-shrink: 0;
+  min-height: 48px;
+  padding-inline: var(--space-5);
+}
+.entry-error {
+  margin-top: var(--space-3);
+  color: var(--danger-text);
+}
+.entry-options {
+  margin-top: var(--space-6);
+}
+.entry-model-option {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.entry-setting-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+.entry-setting-field {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+.entry-setting-field label {
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-80);
+}
+.entry-setting-field select {
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  text-overflow: ellipsis;
+}
+.entry-setting-field select:hover:not(:disabled) {
+  border-color: var(--line-strong);
+}
+.entry-setting-field select:disabled {
+  cursor: not-allowed;
+}
+.entry-setting-note {
+  margin-top: var(--space-2);
+  font-size: var(--text-meta);
+  color: var(--ink-64);
+  overflow-wrap: anywhere;
+}
+.entry-setting-note[role="alert"] {
+  color: var(--danger-text);
+}
+.entry-model-option .entry-model-retry {
+  min-height: 44px;
+  margin-top: var(--space-1);
+  font-size: var(--text-meta);
+}
+@media (max-width: 480px) {
+  .entry-setting-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.entry-vt-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  margin-top: var(--space-3);
+  color: var(--ink-64);
+  font-size: var(--text-meta);
+  cursor: pointer;
+}
+.entry-vt-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+.entry-history {
+  margin-top: var(--space-10);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--line);
+}
+.entry-history-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+.entry-history-heading h2 {
+  font-size: var(--text-section-title);
+}
+.entry-history-heading > span {
+  color: var(--ink-64);
+  font-size: var(--text-meta);
+}
+.entry-history-toggle {
+  min-height: 32px;
+  font-size: var(--text-meta);
+}
+.entry-history ul {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.entry-history li + li {
+  border-top: 1px solid var(--line);
+}
+.entry-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-3) var(--space-2);
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-80);
+}
+.entry-history-item > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.entry-history-item > svg {
+  flex-shrink: 0;
+  color: var(--ink-64);
+}
+.entry-history-item:hover {
+  background: var(--hover);
+  color: var(--ink-strong);
+}
+.entry-history-item:active {
+  background: var(--cream-soft);
+}
+.entry-history-empty {
+  margin-top: var(--space-4);
+  color: var(--ink-64);
+}
+.entry-preview-status {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-meta);
+  color: var(--ink-64);
+  overflow-wrap: anywhere;
+}
+.entry-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-meta);
+}
+.entry-preview-toolbar nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 34px;
+}
+.entry-preview-toolbar nav [aria-current="page"] {
+  font-weight: 700;
+}
+.entry-preview-toolbar a {
+  text-underline-offset: 4px;
+}
+.entry-preview-mode {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-64);
+}
+.entry-preview-mode select {
+  min-height: 34px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+}
+.entry-preview-label {
+  margin-bottom: 0;
+}
+@media (max-width: 720px) {
+  .entry-intro h1 {
+    font-size: 32px;
+  }
+  .entry-url-control {
+    flex-wrap: wrap;
+  }
+  .entry-url-control input {
+    flex-basis: calc(100% - 44px);
+  }
+  .entry-url-control .entry-submit {
+    width: 100%;
+  }
+}

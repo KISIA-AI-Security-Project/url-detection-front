@@ -1,47 +1,28 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import {
-  CalendarCheck,
-  Check,
   ChevronDown,
-  ChevronRight,
   CircleHelp,
-  Eye,
-  FileText,
-  Layers,
-  ListChecks,
-  Network,
-  ScanSearch,
-  Timer,
-  X,
+  ShieldCheck,
+  ShieldX,
+  TriangleAlert,
 } from "lucide-react";
-import {
-  defaultLayer,
-  layers,
-  rankEvidence,
-  resultFor,
-  verdicts,
-} from "../data/results";
+import { rankEvidence, resultFor, verdicts } from "../data/results";
 import { analysisService, demoJob } from "../lib/mock-service";
-import { reportFor } from "../data/report";
-import type { AnalysisJob, Evidence, Layer } from "../lib/types";
-import { displayHost, formatDuration, formatTime } from "../lib/url";
+import { investigationService } from "../lib/mock-investigation";
+import { deepHref } from "../lib/platform";
+import { reportFor, type ReportTone } from "../data/report";
+import type { AnalysisJob, Evidence, Reason, RedirectHop } from "../lib/types";
+import { formatDuration, formatTime } from "../lib/url";
 import {
   Button,
   Footer,
   Header,
   Spinner,
-  StatusIcon,
   TechnicalValue,
 } from "../components/ui";
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const LAYER_TRANSITION_MS = 300;
-const layerIcons: Record<Layer, typeof Network> = {
-  L2: Network,
-  L3: FileText,
-  L4: Eye,
-};
 
 // Keeps each item whole when a list wraps, so "클로킹·행동" never splits.
 function InlineList({ items }: { items: string[] }) {
@@ -70,81 +51,129 @@ function keepExpandedItemInView(target: HTMLElement | null) {
   });
 }
 
-function EvidenceItem({
-  evidence,
-  open,
-  onToggle,
-}: {
-  evidence: Evidence;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  useEffect(() => {
-    if (!open || !prefersReducedMotion()) return;
-    const frame = window.requestAnimationFrame(() =>
-      keepExpandedItemInView(
-        document.getElementById(`evidence-${evidence.id}`),
-      ),
-    );
-    return () => window.cancelAnimationFrame(frame);
-  }, [evidence.id, open]);
+// A confirmed fact, shown in full under the reason that cites it.
+function FactItem({ fact }: { fact: Evidence }) {
   return (
     <article
-      id={`evidence-${evidence.id}`}
-      className={`evidence-detail severity-${evidence.severity} ${open ? "is-open" : ""}`}
-      tabIndex={-1}
+      id={`fact-${fact.id}`}
+      className={`fact-item severity-${fact.severity}`}
     >
-      <button
-        className="evidence-trigger"
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls={`detail-${evidence.id}`}
-      >
-        <span className="evidence-title-group">
-          <span className="evidence-title">{evidence.title}</span>
-          <span className="technical-label">{evidence.label}</span>
+      <div className="fact-head">
+        <h4 className="fact-title">{fact.title}</h4>
+        <span className={`severity-chip ${fact.severity}`}>
+          {verdicts[fact.severity].text}
         </span>
-        <span className="evidence-trigger-meta">
-          <span className={`evidence-status ${evidence.severity}`}>
-            {verdicts[evidence.severity].text}
-          </span>
-          <ChevronDown className={open ? "rotated" : ""} size={18} />
-        </span>
-      </button>
-      <div
-        className={`evidence-panel ${open ? "is-open" : ""}`}
-        id={`detail-${evidence.id}`}
-        aria-hidden={!open}
-        inert={!open}
-        onTransitionEnd={(event) => {
-          if (
-            open &&
-            event.target === event.currentTarget &&
-            event.propertyName === "grid-template-rows"
-          ) {
-            keepExpandedItemInView(
-              document.getElementById(`evidence-${evidence.id}`),
-            );
-          }
-        }}
-      >
-        <div className="evidence-panel-inner">
-          <div className="evidence-expanded">
-            <p className="evidence-description">{evidence.description}</p>
-            <div className="raw-values" id={`raw-${evidence.id}`}>
-              {evidence.values.map((item) => (
-                <TechnicalValue
-                  key={item.key}
-                  label={item.key}
-                  value={item.value}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+      </div>
+      <p className="technical-label">
+        {fact.label} · {fact.layer}
+      </p>
+      <p className="fact-description">{fact.description}</p>
+      <div className="raw-values">
+        {fact.values.map((item) => (
+          <TechnicalValue key={item.key} label={item.key} value={item.value} />
+        ))}
       </div>
     </article>
+  );
+}
+function ReasonItem({ reason, facts }: { reason: Reason; facts: Evidence[] }) {
+  const [open, setOpen] = useState(false);
+  const panelId = `reason-facts-${reason.id}`;
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() =>
+      keepExpandedItemInView(document.getElementById(panelId)),
+    );
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, panelId]);
+  return (
+    <li className={`reason-item ${open ? "is-open" : ""}`}>
+      <div className="reason-row">
+        <p className="reason-text">{reason.text}</p>
+        {facts.length > 0 && (
+          <button
+            type="button"
+            className="text-button reason-toggle"
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? "관련 사실 접기" : `관련 사실 보기 (${facts.length})`}
+            <ChevronDown size={14} className={open ? "rotated" : ""} />
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="reason-facts fade-in" id={panelId}>
+          {facts.map((fact) => (
+            <FactItem key={fact.id} fact={fact} />
+          ))}
+        </div>
+      )}
+    </li>
+  );
+}
+const verdictIcons: Record<ReportTone, typeof ShieldX> = {
+  danger: ShieldX,
+  caution: TriangleAlert,
+  safe: ShieldCheck,
+  unknown: CircleHelp,
+};
+function VerdictIcon({ tone }: { tone: ReportTone }) {
+  const Icon = verdictIcons[tone];
+  return <Icon className="verdict-icon" aria-hidden="true" strokeWidth={2.2} />;
+}
+const statusLabels: Record<number, string> = {
+  301: "영구 이동",
+  302: "임시 이동",
+  303: "다른 주소로 이동",
+  307: "임시 이동",
+  308: "영구 이동",
+};
+// Compact "start → final" line under the analyzed URL. Intermediate hops stay
+// folded so the path never competes with the verdict for attention.
+function RedirectSummary({ chain }: { chain: RedirectHop[] }) {
+  const [open, setOpen] = useState(false);
+  const final = chain[chain.length - 1];
+  const hops = chain.slice(1, -1);
+  return (
+    <div className="redirect-summary" id="redirect-path">
+      <p className="redirect-meta">
+        <span className="redirect-arrow" aria-hidden="true">
+          →
+        </span>
+        <span className="fact-label">최종 도착</span>
+        <span className="redirect-count">{chain.length - 1}회 이동</span>
+      </p>
+      <TechnicalValue value={final.url} label="최종 도착 URL" hideLabel />
+      {hops.length > 0 && (
+        <>
+          <button
+            type="button"
+            className="text-button redirect-toggle"
+            aria-expanded={open}
+            aria-controls="redirect-hops"
+            onClick={() => setOpen(!open)}
+          >
+            경유지 {hops.length}곳 {open ? "접기" : "보기"}
+            <ChevronDown size={14} className={open ? "rotated" : ""} />
+          </button>
+          {open && (
+            <ol className="redirect-hops" id="redirect-hops">
+              {chain.slice(0, -1).map((hop, index) => (
+                <li key={`${index}-${hop.url}`}>
+                  <span className="hop-step">
+                    {index === 0 ? "출발" : `경유 ${index}`} · {hop.status}
+                    {statusLabels[hop.status] && ` ${statusLabels[hop.status]}`}
+                  </span>
+                  <code>{hop.url}</code>
+                </li>
+              ))}
+            </ol>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 export function AnalysisResult({
@@ -157,433 +186,161 @@ export function AnalysisResult({
   const result = resultFor(job);
   const report = reportFor(job, result);
   const hasDetailData = !["unknown", "stub", "blocked"].includes(job.scenario);
-  const [expanded, setExpanded] = useState<Set<Layer>>(
-    () => new Set([defaultLayer(result.evidence)]),
-  );
-  const [expandedEvidence, setExpandedEvidence] = useState<Set<string>>(
-    () => new Set(),
-  );
   const keyEvidence = rankEvidence(result.evidence, 5);
-  const toggle = (id: Layer) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  const toggleEvidence = (id: string) =>
-    setExpandedEvidence((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  const collapseLayerEvidence = (layer: Layer) =>
-    setExpandedEvidence((prev) => {
-      const next = new Set(prev);
-      result.evidence
-        .filter((evidence) => evidence.layer === layer)
-        .forEach((evidence) => next.delete(evidence.id));
-      return next.size === prev.size ? prev : next;
-    });
-  const jump = (evidence: Evidence) => {
-    setExpanded((prev) => new Set([...prev, evidence.layer]));
-    window.setTimeout(() => {
-      const target = document.getElementById(`evidence-${evidence.id}`);
-      target?.scrollIntoView({
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
-        block: "center",
-      });
-      target?.focus({ preventScroll: true });
-    }, LAYER_TRANSITION_MS + 10);
-  };
+  const verdictKeywords = [...new Set(keyEvidence.map((e) => e.keyword))];
+  const factsById = new Map(result.evidence.map((e) => [e.id, e]));
+  // Without structured facts (unknown / stub / blocked), the gateway's own
+  // reasons are listed as plain sentences.
+  const reasons: Reason[] = hasDetailData
+    ? result.reasons
+    : report.reasons.map((text, index) => ({
+        id: `report-${index}`,
+        text,
+        factIds: [],
+      }));
   return (
     <>
       <Header />
       <main className="report-main fade-in">
-        <h1 id="report-title" className="sr-only">
+        <h1 id="report-title" className="report-title">
           분석 결과
         </h1>
-        <div className="report-shell">
-          <aside className="report-sidebar">
-            <article
-              id="final-verdict"
-              className={`sidebar-verdict report-tone-${report.tone}`}
-              aria-labelledby="verdict-title"
-            >
-              <span className="report-watermark" aria-hidden="true">
-                {report.tone === "unknown" ? (
-                  <CircleHelp size={200} />
-                ) : (
-                  <StatusIcon verdict={report.tone} size={200} />
-                )}
-              </span>
-              {report.notice && (
-                <p className="report-notice" role="note">
-                  {report.notice}
-                </p>
-              )}
-              <span className="section-label">최종 판정</span>
-              <div className="verdict-heading">
-                <span className="verdict-emblem" aria-hidden="true">
-                  {report.tone === "unknown" ? (
-                    <CircleHelp size={26} />
-                  ) : (
-                    <StatusIcon verdict={report.tone} size={26} />
-                  )}
-                </span>
-                <h2 id="verdict-title">{report.label}</h2>
-              </div>
-              {report.tone !== "unknown" && (
-                <div className="tone-tabs" aria-hidden="true">
-                  {(["safe", "caution", "danger"] as const).map((tone) => (
-                    <span
-                      key={tone}
-                      className={
-                        report.tone === tone ? `is-current ${tone}` : ""
-                      }
-                    >
-                      {verdicts[tone].text}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <p className="verdict-description">
-                {hasDetailData ? result.summary : report.reasons[0]}
-              </p>
-              {!!report.limitations.length && (
-                <section
-                  className="report-limitations"
-                  aria-labelledby="report-limitations-title"
-                >
-                  <h3 id="report-limitations-title">분석 한계</h3>
-                  <ul className="report-reasons">
-                    {report.limitations.map((limitation, index) => (
-                      <li key={index}>{limitation}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </article>
-            <div className="sidebar-facts">
-              <div className="sidebar-fact">
-                <span className="sidebar-fact-label">
-                  <span className="sidebar-fact-icon" aria-hidden="true">
-                    <CalendarCheck size={13} />
-                  </span>
-                  분석 완료
-                </span>
-                <span className="sidebar-fact-value">
-                  <time dateTime={new Date(job.completesAt).toISOString()}>
-                    {formatTime(job.completesAt)}
-                  </time>
-                </span>
-              </div>
-              <div className="sidebar-fact">
-                <span className="sidebar-fact-label">
-                  <span className="sidebar-fact-icon" aria-hidden="true">
-                    <Timer size={13} />
-                  </span>
-                  소요 시간
-                </span>
-                <span className="sidebar-fact-value">
-                  {formatDuration(job.completesAt - job.createdAt)}
-                </span>
-              </div>
-              <div className="sidebar-fact">
-                <span className="sidebar-fact-label">
-                  <span className="sidebar-fact-icon" aria-hidden="true">
-                    <Layers size={13} />
-                  </span>
-                  분석 범위
-                </span>
+        <article
+          id="final-verdict"
+          className={`report-verdict report-tone-${report.tone}`}
+          aria-labelledby="verdict-title"
+        >
+          {report.notice && (
+            <p className="report-notice" role="note">
+              {report.notice}
+            </p>
+          )}
+          <span className="section-label">최종 판정</span>
+          <h2 id="verdict-title" className="verdict-title">
+            <VerdictIcon tone={report.tone} />
+            {report.label}
+          </h2>
+          {verdictKeywords.length ? (
+            <ul className="verdict-keywords" aria-label="주요 판정 요인">
+              {verdictKeywords.map((keyword) => (
+                <li key={keyword}>{keyword}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="verdict-description">
+              {hasDetailData
+                ? "확인된 위험 신호가 없습니다."
+                : report.reasons[0]}
+            </p>
+          )}
+          <div className="report-url">
+            <p className="fact-label">분석 URL</p>
+            <TechnicalValue value={job.url} label="분석 URL" hideLabel />
+            {result.redirectChain.length > 1 && (
+              <RedirectSummary chain={result.redirectChain} />
+            )}
+          </div>
+          <dl className="report-facts">
+            <div className="report-fact">
+              <dt className="fact-label">분석 완료</dt>
+              <dd className="fact-value">
+                <time dateTime={new Date(job.completesAt).toISOString()}>
+                  {formatTime(job.completesAt)}
+                </time>
+              </dd>
+            </div>
+            <div className="report-fact">
+              <dt className="fact-label">소요 시간</dt>
+              <dd className="fact-value">
+                {formatDuration(job.completesAt - job.createdAt)}
+              </dd>
+            </div>
+            <div className="report-fact">
+              <dt className="fact-label">판정 신뢰도</dt>
+              <dd
+                className={`fact-value report-confidence ${report.confidence === null ? "is-unavailable" : ""}`}
+              >
+                {report.confidence ??
+                  (report.tone === "unknown" ? "산정 불가" : "정보 없음")}
+              </dd>
+            </div>
+            <div className="report-fact">
+              <dt className="fact-label">분석 범위</dt>
+              <dd className="fact-value">
                 {report.coverage && report.coverage.layerIds.length ? (
-                  <div className="report-layer-tags">
-                    {report.coverage.layerIds.map((layer) => (
-                      <span
-                        key={layer}
-                        className={`layer-${layer.toLowerCase()}`}
-                      >
-                        {layer}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="sidebar-fact-value is-unavailable">
-                    정보 없음
+                  <span className="report-layer-tags">
+                    {report.coverage.layerIds.join(" · ")}
                   </span>
+                ) : (
+                  <span className="is-unavailable">정보 없음</span>
                 )}
-              </div>
+              </dd>
+              {!!report.coverage?.checked.length && (
+                <dd className="fact-note">
+                  <InlineList items={report.coverage.checked} />
+                </dd>
+              )}
               {!!report.coverage?.skipped.length && (
-                <p className="sidebar-fact-note">
-                  <strong>미실행 영역</strong>{" "}
-                  <InlineList items={report.coverage.skipped} />
-                </p>
+                <dd className="fact-note">
+                  미실행 · <InlineList items={report.coverage.skipped} />
+                </dd>
               )}
               {!!report.coverage?.stubbed.length && (
-                <p className="sidebar-fact-note">
-                  <strong>시험용 데이터 사용</strong>{" "}
-                  <InlineList items={report.coverage.stubbed} />
-                </p>
+                <dd className="fact-note">
+                  시험용 데이터 · <InlineList items={report.coverage.stubbed} />
+                </dd>
               )}
             </div>
-            <div className="sidebar-url">
-              <p className="sidebar-url-label">분석 URL</p>
-              <div className="report-url" aria-label="분석 대상 URL">
-                <TechnicalValue value={job.url} />
-              </div>
-            </div>
-          </aside>
-          <div className="report-content">
-            {hasDetailData && (
-              <div className="layer-summary-row">
-                {layers.map((layer) => {
-                  const findings = result.evidence.filter(
-                    (e) => e.layer === layer.id,
-                  );
-                  const dangerCount = findings.filter(
-                    (e) => e.severity === "danger",
-                  ).length;
-                  const cautionCount = findings.filter(
-                    (e) => e.severity === "caution",
-                  ).length;
-                  const LayerIcon = layerIcons[layer.id];
-                  return (
-                    <div
-                      className={`layer-summary-card layer-${layer.id.toLowerCase()}`}
-                      key={layer.id}
-                    >
-                      <div className="layer-summary-head">
-                        <span className="layer-summary-icon" aria-hidden="true">
-                          <LayerIcon size={14} />
-                        </span>
-                        <span className="layer-summary-title">
-                          {layer.title}
-                        </span>
-                      </div>
-                      <div className="layer-summary-bar" aria-hidden="true">
-                        {dangerCount > 0 && (
-                          <span
-                            className="layer-summary-bar-segment danger"
-                            style={{
-                              width: `${(dangerCount / layer.checked) * 100}%`,
-                            }}
-                          />
-                        )}
-                        {cautionCount > 0 && (
-                          <span
-                            className="layer-summary-bar-segment caution"
-                            style={{
-                              width: `${(cautionCount / layer.checked) * 100}%`,
-                            }}
-                          />
-                        )}
-                      </div>
-                      <p className="layer-summary-note">
-                        {layer.checked}개 검사 ·{" "}
-                        <strong>이상 {findings.length}건</strong>
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <section className="key-section" aria-labelledby="key-title">
-              <div className="section-heading">
-                <div className="section-heading-copy">
-                  <div className="section-title-row">
-                    <span className="section-title-icon" aria-hidden="true">
-                      <ListChecks size={18} />
-                    </span>
-                    <h2 id="key-title">
-                      핵심 근거{" "}
-                      <span className="finding-count">
-                        {keyEvidence.length}
-                      </span>
-                    </h2>
-                  </div>
-                  <p>최종 판정에 주요하게 반영된 신호입니다.</p>
-                </div>
-                <span className="section-hint">선택하여 상세 확인</span>
-              </div>
-              <div className="key-card">
-                {keyEvidence.length ? (
-                  keyEvidence.map((e) => (
-                    <button
-                      className={`key-evidence severity-${e.severity} layer-${e.layer.toLowerCase()}`}
-                      key={e.id}
-                      onClick={() => jump(e)}
-                    >
-                      <span className="key-evidence-icon" aria-hidden="true">
-                        <StatusIcon verdict={e.severity} size={18} />
-                      </span>
-                      <span className="key-evidence-copy">
-                        <span className="key-evidence-title">{e.title}</span>
-                        <span className="key-evidence-description">
-                          {e.keySummary}
-                        </span>
-                      </span>
-                      <span className="key-evidence-severity">
-                        {verdicts[e.severity].text}
-                      </span>
-                      <span className="key-evidence-layer">{e.layer}</span>
-                      <ChevronRight
-                        className="key-evidence-arrow"
-                        size={18}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  ))
-                ) : (
-                  <div className="empty-evidence">
-                    {hasDetailData
-                      ? "특이사항이 확인되지 않았습니다."
-                      : "제공된 핵심 근거가 없습니다."}
-                  </div>
-                )}
-              </div>
-            </section>
+          </dl>
+          {!!report.limitations.length && (
             <section
-              className="analysis-sections"
-              aria-labelledby="analysis-title"
+              className="report-limitations"
+              aria-labelledby="report-limitations-title"
             >
-              <div className="section-heading">
-                <div className="section-heading-copy">
-                  <div className="section-title-row">
-                    <span className="section-title-icon" aria-hidden="true">
-                      <ScanSearch size={18} />
-                    </span>
-                    <h2 id="analysis-title">상세 분석</h2>
-                  </div>
-                  <p>
-                    {hasDetailData
-                      ? "세 가지 관점에서 링크의 안전성을 살펴봤습니다."
-                      : "현재 응답에는 영역별 상세 근거가 포함되어 있지 않습니다."}
-                  </p>
-                </div>
-              </div>
-              {layers.map((layer) => {
-                const findings = result.evidence.filter(
-                  (e) => e.layer === layer.id,
-                );
-                const open = expanded.has(layer.id);
-                const LayerIcon = layerIcons[layer.id];
-                return (
-                  <section
-                    id={`analysis-layer-${layer.id}`}
-                    className={`analysis-layer layer-${layer.id.toLowerCase()} ${open ? "is-open" : ""}`}
-                    key={layer.id}
-                  >
-                    <h3>
-                      <button
-                        className="accordion-trigger"
-                        onClick={() => {
-                          toggle(layer.id);
-                          if (open && prefersReducedMotion()) {
-                            collapseLayerEvidence(layer.id);
-                          }
-                          if (!open && prefersReducedMotion()) {
-                            window.requestAnimationFrame(() =>
-                              keepExpandedItemInView(
-                                document.getElementById(
-                                  `analysis-layer-${layer.id}`,
-                                ),
-                              ),
-                            );
-                          }
-                        }}
-                        aria-expanded={open}
-                        aria-controls={`layer-${layer.id}`}
-                      >
-                        <span className="layer-icon" aria-hidden="true">
-                          <LayerIcon size={18} />
-                        </span>
-                        <span className="layer-heading">
-                          <span>
-                            <span className="layer-name">{layer.title}</span>
-                            <span className="count-badge">
-                              {findings.length}
-                            </span>
-                          </span>
-                          <span className="layer-subtitle">
-                            {layer.subtitle}
-                          </span>
-                        </span>
-                        <span className="layer-id">{layer.id}</span>
-                        <ChevronDown
-                          className={open ? "rotated" : ""}
-                          size={18}
-                        />
-                      </button>
-                    </h3>
-                    <div
-                      className={`layer-panel ${open ? "is-open" : ""}`}
-                      id={`layer-${layer.id}`}
-                      aria-hidden={!open}
-                      inert={!open}
-                      onTransitionEnd={(event) => {
-                        if (
-                          event.target === event.currentTarget &&
-                          event.propertyName === "grid-template-rows"
-                        ) {
-                          if (open) {
-                            keepExpandedItemInView(
-                              document.getElementById(
-                                `analysis-layer-${layer.id}`,
-                              ),
-                            );
-                          } else {
-                            collapseLayerEvidence(layer.id);
-                          }
-                        }
-                      }}
-                    >
-                      <div className="layer-panel-inner">
-                        <div className="layer-content">
-                          <p className="layer-summary">
-                            {hasDetailData ? (
-                              <>
-                                검사된 항목 {layer.checked}개<span>·</span>의미
-                                있는 근거 {findings.length}개
-                              </>
-                            ) : (
-                              "상세 분석 데이터가 제공되지 않았습니다."
-                            )}
-                          </p>
-                          {findings.length ? (
-                            findings.map((e) => (
-                              <EvidenceItem
-                                key={e.id}
-                                evidence={e}
-                                open={expandedEvidence.has(e.id)}
-                                onToggle={() => toggleEvidence(e.id)}
-                              />
-                            ))
-                          ) : (
-                            <div className="empty-layer">
-                              {hasDetailData
-                                ? "특이사항이 확인되지 않았습니다."
-                                : "이 영역의 상세 근거를 확인할 수 없습니다."}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                );
-              })}
+              <h3 id="report-limitations-title">분석 한계</h3>
+              <ul className="report-reasons">
+                {report.limitations.map((limitation, index) => (
+                  <li key={index}>{limitation}</li>
+                ))}
+              </ul>
             </section>
+          )}
+        </article>
+        <section className="reasons-section" aria-labelledby="reasons-title">
+          <div className="section-heading">
+            <div className="section-heading-copy">
+              <h2 id="reasons-title">판정 이유</h2>
+              <p>각 이유와 연결된 확인된 사실을 펼쳐 볼 수 있습니다.</p>
+            </div>
           </div>
-        </div>
-        <div className="report-disclaimer">
-          <p>
-            이 결과는 분석 시점에 확인한 신호를 바탕으로 합니다. 사이트의
-            안전성을 보장하지 않으며, 이후 콘텐츠나 동작이 달라질 수 있습니다.
-            <br />
-            <span>
-              현재 화면은 실제 보안 검사 없이 제공되는 목업 데이터입니다.
-            </span>
-          </p>
+          {reasons.length ? (
+            <ol className="reason-list">
+              {reasons.map((reason) => (
+                <ReasonItem
+                  key={reason.id}
+                  reason={reason}
+                  facts={reason.factIds
+                    .map((id) => factsById.get(id))
+                    .filter((fact): fact is Evidence => !!fact)}
+                />
+              ))}
+            </ol>
+          ) : (
+            <p className="empty-evidence">
+              구체적인 위해와 연결된 사실이 확인되지 않았습니다.
+            </p>
+          )}
+        </section>
+        <div className="deep-request">
+          <Button
+            onClick={() =>
+              window.location.assign(
+                deepHref(investigationService.start(job.url).id),
+              )
+            }
+          >
+            심층분석 요청
+          </Button>
         </div>
         <Footer preview={preview} />
       </main>
@@ -669,13 +426,13 @@ export function AnalysisPage({ id }: { id?: string }) {
       <main className="state-main">
         <div className="state-meta">
           <span className="eyebrow">DEEP ANALYSIS</span>
-          {job && <span className="state-domain">{displayHost(job.url)}</span>}
+          {job && <span className="state-domain">{job.url}</span>}
         </div>
         <div className="state-content" role="status" aria-live="polite">
           {["loading_job", "scanning", "reconnecting"].includes(state) ? (
             <>
-              <div className="state-icon blue">
-                <Spinner size={32} />
+              <div className="state-icon">
+                <Spinner size={28} />
               </div>
               <h1>
                 {state === "reconnecting"
@@ -696,26 +453,15 @@ export function AnalysisPage({ id }: { id?: string }) {
               )}
             </>
           ) : state === "completed" ? (
-            <>
-              <div className="state-icon safe">
-                <Check size={30} />
-              </div>
-              <h1>완료</h1>
-            </>
+            <h1>완료</h1>
           ) : state === "cancelled" ? (
             <>
-              <div className="state-icon">
-                <X size={28} />
-              </div>
               <h1>분석이 취소되었습니다.</h1>
               <p>요청한 심층 분석이 중단되었습니다.</p>
               <CloseButton />
             </>
           ) : state === "status_fetch_error" ? (
             <>
-              <div className="state-icon">
-                <CircleHelp size={30} />
-              </div>
               <h1>상태를 불러오지 못했습니다.</h1>
               <p>
                 연결 상태를 확인한 뒤 다시 시도해주세요.
@@ -734,9 +480,6 @@ export function AnalysisPage({ id }: { id?: string }) {
             </>
           ) : (
             <>
-              <div className="state-icon">
-                <CircleHelp size={30} />
-              </div>
               <h1>
                 {state === "missing"
                   ? "분석 결과를 찾을 수 없습니다."

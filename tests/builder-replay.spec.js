@@ -118,7 +118,7 @@ test("actual Builder candidate: direct reason fact preserves click, selector, do
     "문서 변경 성공을 확인한 결과는 아닙니다",
   );
   await expect(page.locator(".fact-technical")).toHaveCount(0);
-  await page.getByRole("checkbox", { name: "기술정보 표시" }).check();
+  await page.getByRole("switch", { name: "기술정보 표시" }).check();
   await page.getByText("기술정보 보기", { exact: true }).click();
   expect(await page.locator(".fact-technical pre").textContent()).toBe(
     fact.text,

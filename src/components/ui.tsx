@@ -1,4 +1,9 @@
-import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { Copy, LoaderCircle } from "lucide-react";
 export function Brand({ onHome }: { onHome?: () => void } = {}) {
   const content = (
@@ -10,18 +15,42 @@ export function Brand({ onHome }: { onHome?: () => void } = {}) {
     </>
   );
   return onHome ? (
-    <button type="button" className="brand brand-home" onClick={onHome} aria-label="LinkGuard 메인 화면으로">
+    <button
+      type="button"
+      className="brand brand-home"
+      onClick={onHome}
+      aria-label="LinkGuard 메인 화면으로"
+    >
       {content}
     </button>
-  ) : <div className="brand">{content}</div>;
+  ) : (
+    <a
+      className="brand brand-home"
+      href="/"
+      aria-label="LinkGuard 메인 화면으로"
+    >
+      {content}
+    </a>
+  );
 }
 export function Header({
   actions,
   wide = false,
   onHome,
 }: { actions?: ReactNode; wide?: boolean; onHome?: () => void } = {}) {
+  const [scrolled, setScrolled] = useState(
+    () => typeof window !== "undefined" && window.scrollY > 0,
+  );
+
+  useEffect(() => {
+    const updateScrolled = () => setScrolled(window.scrollY > 0);
+    updateScrolled();
+    window.addEventListener("scroll", updateScrolled, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrolled);
+  }, []);
+
   return (
-    <header className="site-header">
+    <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
       <div className={`header-inner${wide ? " header-wide" : ""}`}>
         <Brand onHome={onHome} />
         {actions && (

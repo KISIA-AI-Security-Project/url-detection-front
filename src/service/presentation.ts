@@ -49,7 +49,7 @@ export function taskState(
 export function workState(work: DeepWork, snapshot: DeepSnapshot) {
   if (work.status === "answered")
     return { state: "done" as const, label: "확인 완료" };
-  if (["completed", "failed"].includes(snapshot.status))
+  if (["completed", "failed", "cancelled"].includes(snapshot.status))
     return { state: "stopped" as const, label: "조사 종료" };
   if (
     snapshot.managers.some(
@@ -76,7 +76,7 @@ export function workState(work: DeepWork, snapshot: DeepSnapshot) {
 
 export function taskPresentation(task: DeepTask, runStatus: string) {
   const observed = taskState(task);
-  const ended = ["completed", "failed"].includes(runStatus);
+  const ended = ["completed", "failed", "cancelled"].includes(runStatus);
   const state =
     ended && ["pending", "running"].includes(observed)
       ? ("stopped" as const)

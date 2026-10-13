@@ -161,20 +161,18 @@ button svg {
   white-space: nowrap;
 }
 
-/* Header: logo + name on the page color, separated by a hairline. */
-/* Sticky glass header: page content blurs through it while scrolling. */
+/* Header: page-colored at rest, with a hairline only after scrolling. */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 10;
   height: 60px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--paper) 62%, transparent);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow:
-    inset 0 1px 0 var(--glass-edge),
-    0 8px 20px -16px var(--glass-shadow);
+  border-bottom: 1px solid transparent;
+  background: var(--paper);
+  box-shadow: none;
+}
+.site-header.is-scrolled {
+  border-bottom-color: var(--line);
 }
 .header-inner {
   max-width: var(--content-width);
@@ -205,6 +203,7 @@ button svg {
   border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
+  text-decoration: none;
 }
 
 /* Severity chip: text label always present, fill only reinforces it. */
@@ -278,7 +277,6 @@ button svg {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-
 
 .verdict-icon {
   flex-shrink: 0;
@@ -788,7 +786,8 @@ button svg {
 .work-detail {
   display: grid;
   gap: var(--space-5);
-  padding: var(--space-1) var(--space-2) var(--space-6) calc(18px + var(--space-5));
+  padding: var(--space-1) var(--space-2) var(--space-6)
+    calc(18px + var(--space-5));
 }
 .work-meta {
   display: grid;
@@ -1010,6 +1009,17 @@ button svg {
     rgba(255, 255, 255, 0.9),
     color-mix(in srgb, var(--paper) 70%, transparent)
   );
+}
+.header-actions .button-secondary {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--paper);
+  box-shadow: none;
+}
+.header-actions .button-secondary:hover:not(:disabled) {
+  color: var(--paper);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 .button-primary:active:not(:disabled),
 .button-secondary:active:not(:disabled) {

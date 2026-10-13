@@ -12,18 +12,19 @@ export function RecentAnalyses({
 }) {
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
-  const visible = expanded ? analyses : analyses.slice(0, 3);
   return (
     <section className="entry-history" aria-labelledby={`${listId}-title`}>
       <div className="entry-history-heading">
         <h2 id={`${listId}-title`}>최근 분석</h2>
-        {analyses.length > 3 ? (
+        {analyses.length > 0 && analyses.length <= 3 ? (
+          <span>결과 다시 열기</span>
+        ) : analyses.length > 3 ? (
           <button
             type="button"
             className="text-button entry-history-toggle"
             aria-expanded={expanded}
             aria-controls={listId}
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => setExpanded((current) => !current)}
           >
             {expanded ? "접기" : "전체 보기"}
             <ChevronDown
@@ -32,16 +33,23 @@ export function RecentAnalyses({
               aria-hidden="true"
             />
           </button>
-        ) : analyses.length ? (
-          <span>결과 다시 열기</span>
         ) : null}
       </div>
       <ul id={listId}>
-        {visible.map((row) => (
-          <li key={row.scanId}>
+        {analyses.map((row, index) => (
+          <li
+            key={row.scanId}
+            className={
+              index >= 3
+                ? `entry-history-collapsible${expanded ? " is-expanded" : ""}`
+                : undefined
+            }
+            aria-hidden={index >= 3 && !expanded}
+          >
             <button
               type="button"
               className="entry-history-item"
+              tabIndex={index >= 3 && !expanded ? -1 : undefined}
               onClick={() => onOpenAnalysis(row)}
             >
               <span>{row.url}</span>

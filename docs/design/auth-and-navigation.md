@@ -2,13 +2,15 @@
 
 ## 화면과 책임
 
-기존 paper/ink/cream·Inter·glass header/button, 440px 한 열을 유지한다. 제목은 회원가입이고 이메일 옆 인증 버튼을 주어진 48px 제어 높이로 정렬한다. 코드 입력은 같은 이메일 아래에 표시한다. 비밀번호는 이메일 인증 전에 비활성화한다. 320/390px에서도 input min-width:0과 96px 보조 버튼을 사용해 잘리지 않는다.
+로그인 화면은 공통 헤더·푸터 없이 화면 중앙의 단일 bordered surface에 집중한다. 카드 폭은 유지하되 입력·버튼·하단 링크의 좌우 폭은 줄인다. 카드 상단 중앙에 로고와 서비스명을 표시하고, 이메일·비밀번호 문구는 박스 없는 밑줄형 입력 내부에 둔다. 로그인 버튼은 효과 없는 단색 강조색을 사용한다. 버튼 아래 구분선 다음 행에는 회원가입을 왼쪽, 기존 이메일 인증과 비밀번호 찾기를 오른쪽 한 줄에 배치한다. 로고는 분석 화면으로 돌아가는 키보드 조작 가능한 컨트롤로 유지한다.
+
+회원가입도 로그인과 동일한 중앙 카드, 축소된 내부 폭, 밑줄형 입력, 입력 내부 문구, 단색 강조색 제출 버튼을 사용한다. 기존 paper/ink/cream·Inter와 440px 한 열을 유지한다. 이메일 옆 인증 버튼을 주어진 48px 제어 높이로 정렬하고, 인증번호 문구는 같은 이메일 아래의 코드 입력 내부에 표시한다. 비밀번호는 이메일 인증 전에 비활성화한다. 320/390px에서도 input min-width:0과 96px 보조 버튼을 사용해 잘리지 않는다. 개발 환경의 `/auth-preview`는 실제 요청 없이 임의의 6자리 코드로 인증 완료 전환을 검토하기 위한 임시 화면이다.
 
 이메일부터 시작해 서버 인증이 완료된 후 비밀번호를 받는 사용자의 순서가 기준이다. ServiceAuth는 메모리에 43자 intent를 만들고 session-auth의 startEmailVerification / confirmEmailVerification / resendEmailVerification / completeRegistration을 호출한다. 호출 경로·서버 cookie·세션 보안은 API/session-auth의 책임이다. Front에서 성공 응답을 만들어 내지 않는다.
 
 `code_sent`, `verified`, `complete`를 구별한다. start/resend 재조회가 verified면 코드 단계를 다시 강요하지 않는다. 이메일 변경은 이전 intent와 password/repeat/code/verified를 모두 무효화한다. pending 응답은 intent와 revision이 현재 화면에 일치할 때만 반영한다. 서버 cooldown/expiry를 실제 시각 기준으로 표시하고 만료 후 제출을 막는다. 확인 버튼 성공 시 다음 초점은 비밀번호로 이동한다.
 
-코드 불일치는 수정, 코드 만료는 재전송으로 복구한다. flow 만료/기존 계정/결과 불명확은 신규 계정 비밀번호 설정으로 우회하지 않고 기존 Cognito 이메일 확인 또는 로그인 화면의 비밀번호 찾기로 안내한다. 기존 계정 이메일 인증은 별도 모드이며 confirmSignUp/resendSignUpCode만 쓴다. 신규 complete를 호출하지 않는다. 서버 연결이 불명확한 confirm/complete는 자동 재전송하거나 성공 표시하지 않는다.
+코드 불일치는 수정, 코드 만료는 재전송으로 복구한다. flow 만료/기존 계정/결과 불명확은 신규 계정 비밀번호 설정으로 우회하지 않고 기존 Cognito 이메일 확인 또는 로그인 화면의 비밀번호 찾기로 안내한다. 기존 이메일 인증 화면도 회원가입과 같은 중앙 카드, 내부 폭, 밑줄형 입력, 입력 내부 문구, 단색 제출 버튼을 사용한다. 기존 계정 이메일 인증은 별도 모드이며 confirmSignUp/resendSignUpCode만 쓰고 신규 complete를 호출하지 않는다. 서버 연결이 불명확한 confirm/complete는 자동 재전송하거나 성공 표시하지 않는다.
 
 비밀번호 조건은 signupPasswordRules의 8~256자, 지원 ASCII 특수문자, 모든 공백 금지를 따르고 재입력을 비교한다. 비밀번호/code/intent는 browser storage/history/log에 넣지 않는다.
 

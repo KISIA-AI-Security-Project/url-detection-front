@@ -147,7 +147,7 @@ export class ServiceClient {
     let done=false;return this.events('/deep/'+run.run_id+'/events',task,(type,value)=>{
       if(type!=='deep')return;
       if(value.run_id!==run.run_id)throw new ApiFailure('심층분석 결과를 확인하지 못했습니다.',502,'unexpected_deep');
-      onResult(value);done=['completed','failed'].includes(value.status);
+      onResult(value);done=['completed','failed','cancelled'].includes(value.status);
     },()=>done);
   }
 }

@@ -53,13 +53,18 @@ function verification(
 }
 
 async function openLogin(page: Page) {
-  await page
+  const headerLogin = page
     .getByRole("banner")
-    .getByRole("button", { name: "로그인", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "로그인", exact: true }),
-  ).toBeVisible();
+    .getByRole("button", { name: "로그인", exact: true });
+  if (await headerLogin.count()) await headerLogin.click();
+  else
+    await page
+      .locator(".service-auth")
+      .getByRole("button", { name: "로그인", exact: true })
+      .click();
+  await expect(page.locator(".service-auth")).toBeVisible();
+  await expect(page.locator(".auth-brand")).toContainText("LinkGuard");
+  await expect(page.getByRole("banner")).toHaveCount(0);
 }
 async function fillLogin(
   page: Page,
@@ -159,7 +164,6 @@ test("Korean native login validates, handles failure, preserves dynamic models a
   await expect(email).toHaveAttribute("autocomplete", "username");
   await expect(password).toHaveAttribute("autocomplete", "current-password");
   await expect(signin(page)).toBeDisabled();
-  await page.getByRole("heading", { name: "로그인", exact: true }).click();
   await page.screenshot({
     path: evidence + "/login-desktop.png",
     fullPage: true,
@@ -196,7 +200,7 @@ test("Korean native login validates, handles failure, preserves dynamic models a
   ).toBeDisabled();
   await expect(
     page
-      .getByRole("banner")
+      .locator(".service-auth")
       .getByRole("button", { name: "회원가입", exact: true }),
   ).toBeDisabled();
   await page
@@ -218,18 +222,19 @@ test("Korean native login validates, handles failure, preserves dynamic models a
   await expect(
     page.getByRole("button", { name: "로그아웃", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByLabel("빠른 분석 모델", { exact: true }),
-  ).toBeEnabled();
-  await expect(
-    page.getByLabel("빠른 분석 모델", { exact: true }).locator("option"),
-  ).toHaveText(["Claude Haiku 5.5", "Claude Sonnet 5.5", "Claude Opus 5.5"]);
-  await page
-    .getByLabel("빠른 분석 모델", { exact: true })
-    .selectOption("claude-opus");
-  await page
-    .getByLabel("추론 노력 (effort)", { exact: true })
-    .selectOption("max");
+  const picker = page.getByRole("button", {
+    name: "모델 및 추론 설정",
+    exact: true,
+  });
+  await expect(picker).toBeEnabled();
+  await picker.click();
+  const pickerDialog = page.getByRole("dialog", {
+    name: "모델 및 추론 설정",
+  });
+  await expect(pickerDialog.locator(".entry-model-option")).toHaveCount(15);
+  await pickerDialog
+    .getByRole("button", { name: "Claude Opus 5.5 Max", exact: true })
+    .click();
   await page.reload();
   await expect(
     page.getByRole("button", { name: "로그아웃", exact: true }),
@@ -289,7 +294,7 @@ test("native Web Locks block sign-in and signup in another tab until the first s
   );
   expect(signins).toBe(0);
   await second
-    .getByRole("banner")
+    .locator(".service-auth")
     .getByRole("button", { name: "회원가입", exact: true })
     .click();
   await second
@@ -425,9 +430,7 @@ test("wrong credentials after explicit logout keep the native form and Korean er
   await openLogin(page);
   await fillLogin(page);
   await signin(page).click();
-  await expect(
-    page.getByRole("heading", { name: "로그인", exact: true }),
-  ).toBeVisible();
+  await expect(page.locator(".service-auth")).toBeVisible();
   await expect(page.getByRole("alert")).toContainText(
     "이메일 또는 비밀번호를 확인해 주세요.",
   );
@@ -608,7 +611,6 @@ test("email first signup stays in one form and sends password only after verifie
   await repeat.fill("Different!234");
   await expect(page.getByText("비밀번호가 일치하지 않습니다.")).toBeVisible();
   await repeat.fill("Local!234");
-  await page.getByRole("heading", { name: "회원가입", exact: true }).click();
   await page.screenshot({
     path: evidence + "/signup-verified-mobile-390.png",
     fullPage: true,
@@ -636,9 +638,7 @@ test("email first signup stays in one form and sends password only after verifie
   await page
     .getByRole("button", { name: "로그인으로 이동", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "로그인", exact: true }),
-  ).toBeVisible();
+  await expect(page.locator(".service-auth")).toBeVisible();
   await expect(page.getByLabel("이메일", { exact: true })).toHaveValue(
     "test@example.test",
   );
@@ -821,11 +821,9 @@ for (const failure of [
       page.getByRole("button", { name: "회원가입 완료", exact: true }),
     ).toBeDisabled();
     await page
-      .getByRole("button", { name: "기존 계정 이메일 인증", exact: true })
+      .getByRole("button", { name: "기존 이메일 인증", exact: true })
       .click();
-    await expect(
-      page.getByRole("heading", { name: "기존 계정 이메일 인증", exact: true }),
-    ).toBeVisible();
+    await expect(page.locator(".service-auth")).toBeVisible();
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
     expect(complete).toBe(failure === "completion_unknown" ? 1 : 0);
   });
@@ -905,21 +903,21 @@ test("Back and Forward preserve login and restore existing Fast/Deep without POS
     .fill("https://example.test/");
   await page.getByRole("button", { name: "분석 시작", exact: true }).click();
   await page
-    .getByRole("button", { name: "심층분석 요청", exact: true })
+    .getByRole("button", { name: "심층 분석 시작", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "심층 분석 결과", exact: true }),
   ).toBeVisible();
   await page.goBack();
   await expect(
-    page.getByRole("button", { name: "심층분석 요청", exact: true }),
+    page.getByRole("button", { name: "심층 분석 시작", exact: true }),
   ).toBeVisible();
   await page.goBack();
   await expect(page.getByLabel("분석할 URL", { exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "로그아웃" })).toBeVisible();
   await page.goForward();
   await expect(
-    page.getByRole("button", { name: "심층분석 요청", exact: true }),
+    page.getByRole("button", { name: "심층 분석 시작", exact: true }),
   ).toBeVisible();
   await page.goForward();
   await expect(
@@ -1113,7 +1111,10 @@ test("explicit logout followed by a persisted page show does not restore protect
     true,
   );
   await expect(
-    page.getByLabel("빠른 분석 모델", { exact: true }),
+    page.getByRole("button", {
+      name: "모델 및 추론 설정",
+      exact: true,
+    }),
   ).toBeEnabled();
   await page.getByRole("button", { name: "로그아웃" }).click();
   await expect(
@@ -1223,7 +1224,10 @@ test("failed logout is visible and reload cannot revive the local signed-out vie
     true,
   );
   await expect(
-    page.getByLabel("빠른 분석 모델", { exact: true }),
+    page.getByRole("button", {
+      name: "모델 및 추론 설정",
+      exact: true,
+    }),
   ).toBeEnabled();
   await page.getByRole("button", { name: "로그아웃", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(

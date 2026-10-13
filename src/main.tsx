@@ -7,6 +7,7 @@ import { PreviewPage } from "./pages/PreviewPage";
 import { ServicePage } from "./pages/ServicePage";
 import { DesignPreviewPage } from "./pages/DesignPreviewPage";
 import { MainPreviewPage } from "./pages/MainPreviewPage";
+import { AuthPreviewPage } from "./pages/AuthPreviewPage";
 import "./fonts.css";
 import "./styles.css";
 import "./service/service.css";
@@ -52,6 +53,8 @@ const page =
     ) : (
       <DesignPreviewPage />
     )
+  ) : import.meta.env.DEV && path === "/auth-preview" ? (
+    <AuthPreviewPage />
   ) : import.meta.env.DEV && deepMatch ? (
     <DeepAnalysisPage id={decodeURIComponent(deepMatch[1])} />
   ) : match && /^[0-9a-f]{32}$/.test(match[1]) ? (

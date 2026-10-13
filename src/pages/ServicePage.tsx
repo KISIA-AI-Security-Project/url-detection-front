@@ -83,10 +83,17 @@ function remember(scan: string, url: string, run?: string) {
   else sessionStorage.removeItem("web.activeDeep");
 }
 
+function requestedAuthView(): "login" | "signup" | null {
+  const value = new URLSearchParams(location.search).get("auth");
+  return value === "login" || value === "signup" ? value : null;
+}
+
 export function ServicePage() {
   const [session, setSession] = useState<Session | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
-  const [authView, setAuthView] = useState<"login" | "signup" | null>(null);
+  const [authView, setAuthView] = useState<"login" | "signup" | null>(
+    requestedAuthView,
+  );
   const showAuth = authView !== null;
   const [loginPending, setLoginPending] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
@@ -95,6 +102,7 @@ export function ServicePage() {
   const [input, setInput] = useState("");
   const [url, setUrl] = useState("");
   const [fast, setFast] = useState<FastResult | null>(null);
+  const [fastCompletedAt, setFastCompletedAt] = useState<number | null>(null);
   const [deep, setDeep] = useState<DeepSnapshot | null>(null);
   const [deepPending, setDeepPending] = useState(false);
   const [error, setError] = useState("");
@@ -154,6 +162,7 @@ export function ServicePage() {
     setAuthView(null);
     setView("entry");
     setFast(null);
+    setFastCompletedAt(null);
     setDeep(null);
     setVt(null);
     setDeepPending(false);
@@ -252,7 +261,10 @@ export function ServicePage() {
   ) {
     try {
       await current.client.streamFast(scan, attempt, task, (value) => {
-        if (current.client.current(task)) setFast(value);
+        if (!current.client.current(task)) return;
+        setFast(value);
+        if (value.judgment_status === "accepted")
+          setFastCompletedAt((previous) => previous ?? Date.now());
       });
     } catch (error) {
       if (current.client.current(task)) fail(error);
@@ -317,6 +329,7 @@ export function ServicePage() {
     setAuthView(null);
     setError("");
     setFast(null);
+    setFastCompletedAt(null);
     setDeep(null);
     setVt(null);
     setDeepPending(false);
@@ -435,6 +448,7 @@ export function ServicePage() {
         }
         anchorRoute(route);
         if (!current.authenticated) return;
+        setAuthView(null);
         void loadModels(current);
         void restoreRoute(current, route);
       })
@@ -490,6 +504,7 @@ export function ServicePage() {
     taskRef.current = task;
     setError("");
     setFast(null);
+    setFastCompletedAt(null);
     setDeep(null);
     setVt(null);
     setDeepPending(false);
@@ -553,13 +568,22 @@ export function ServicePage() {
   }
 
   async function requestDeep() {
+    const selectedModel = modelCatalog?.models.find(
+      (model) => model.id === modelChoice,
+    );
     if (
       !session ||
       !fast ||
       !taskRef.current ||
       deepPending ||
       fast.judgment_status !== "accepted" ||
-      !fast.context_revision
+      !fast.context_revision ||
+      modelsLoading ||
+      !!modelsError ||
+      !selectedModel ||
+      (selectedModel.efforts.length
+        ? !selectedModel.efforts.includes(reasoningEffort ?? "")
+        : reasoningEffort !== null)
     )
       return;
     const task = taskRef.current;
@@ -573,6 +597,10 @@ export function ServicePage() {
           context_revision: fast.context_revision,
           result_revision: fast.result_revision,
           request_text: deepRequestText,
+          model_choice: modelChoice,
+          ...(typeof reasoningEffort === "string"
+            ? { reasoning_effort: reasoningEffort }
+            : {}),
         },
         task,
       );
@@ -628,46 +656,52 @@ export function ServicePage() {
   }
   return (
     <>
-      <Header
-        wide={wide}
-        onHome={backToEntry}
-        actions={
-          logoutPending ? (
-            <span className="auth-header-status" role="status">
-              <Spinner /> 로그아웃 중
-            </span>
-          ) : authenticated ? (
-            <button className="text-button" onClick={() => void logout()}>
-              로그아웃
-            </button>
-          ) : (
-            <>
-              <button
-                className="text-button"
-                disabled={!session || loginPending || logoutPending}
-                onClick={() => {
-                  setAuthView("signup");
-                  setError("");
-                }}
-              >
-                회원가입
+      {!showAuth && (
+        <Header
+          wide={wide}
+          onHome={backToEntry}
+          actions={
+            logoutPending ? (
+              <span className="auth-header-status" role="status">
+                <Spinner /> 로그아웃 중
+              </span>
+            ) : authenticated ? (
+              <button className="text-button" onClick={() => void logout()}>
+                로그아웃
               </button>
-              <Button
-                variant="secondary"
-                disabled={!session || loginPending || logoutPending}
-                onClick={login}
-              >
-                <LogIn size={15} />
-                로그인
-              </Button>
-            </>
-          )
-        }
-      />
+            ) : (
+              <>
+                <button
+                  className="text-button"
+                  disabled={!session || loginPending || logoutPending}
+                  onClick={() => {
+                    setAuthView("signup");
+                    setError("");
+                  }}
+                >
+                  회원가입
+                </button>
+                <Button
+                  variant="secondary"
+                  disabled={!session || loginPending || logoutPending}
+                  onClick={login}
+                >
+                  <LogIn size={15} />
+                  로그인
+                </Button>
+              </>
+            )
+          }
+        />
+      )}
       <main
-        className={`report-main service-main${wide ? " service-wide" : ""}`}
+        className={
+          showAuth
+            ? "service-main auth-page-main"
+            : `report-main service-main${view === "entry" ? " service-entry-main" : ""}${wide ? " service-wide" : ""}`
+        }
       >
-        {!showAuth && view !== "entry" && (
+        {!showAuth && view !== "entry" && view !== "fast" && (
           <div className="service-back">
             <button
               className="text-button"
@@ -749,12 +783,29 @@ export function ServicePage() {
                   onChange: changeDeepRequest,
                   error: deepRequestError,
                 }}
+                deepModelSelection={{
+                  models: modelCatalog?.models ?? [],
+                  value: modelChoice,
+                  loading: modelsLoading,
+                  error: modelsError,
+                  onChange: changeModel,
+                  effort: reasoningEffort,
+                  onEffortChange: (value) =>
+                    setModelSelection((previous) => ({
+                      ...previous,
+                      reasoningEffort: value,
+                    })),
+                  onRetry: () => {
+                    if (session && authenticated) void loadModels(session);
+                  },
+                }}
+                completedAt={fastCompletedAt}
                 virustotal={vt}
               />
             )}
           </>
         ) : deep ? (
-          <DeepResultView snapshot={deep} url={url} />
+          <DeepResultView snapshot={deep} url={url} onClose={backToFast} />
         ) : error ? (
           <Button variant="secondary" onClick={backToFast}>
             빠른 분석 결과로 돌아가기
@@ -765,9 +816,11 @@ export function ServicePage() {
             심층 분석 자료를 불러오고 있습니다.
           </section>
         )}
-        <footer className="page-footer">
-          <span>LinkGuard</span>
-        </footer>
+        {!showAuth && (
+          <footer className="page-footer">
+            <span>LinkGuard</span>
+          </footer>
+        )}
       </main>
     </>
   );

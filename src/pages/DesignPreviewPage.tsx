@@ -4,10 +4,11 @@ import { DeepResultView, FastResultView } from "../components/ServiceResults";
 import {
   previewDeep,
   previewFast,
+  previewModels,
   previewUrl,
   previewVirusTotal,
 } from "../service/preview-fixtures";
-import type { FastResult } from "../service/contracts";
+import type { FastResult, FastVerdict } from "../service/contracts";
 
 const screens = [
   ["fast", "빠른 결과"],
@@ -30,6 +31,44 @@ const vtChoices = [
   ["off", "조회 미선택"],
 ] as const;
 type VtChoice = (typeof vtChoices)[number][0];
+const verdictChoices: ReadonlyArray<readonly [FastVerdict, string]> = [
+  ["BENIGN", "정상"],
+  ["LIKELY_BENIGN", "정상 가능성 높음"],
+  ["SUSPICIOUS", "의심"],
+  ["LIKELY_MALICIOUS", "악성 가능성 높음"],
+  ["MALICIOUS", "악성"],
+  ["UNKNOWN", "판단불가"],
+];
+const verdictExamples: Record<
+  FastVerdict,
+  { summary: string; reasonCount: number }
+> = {
+  BENIGN: {
+    summary: "현재 확인된 정보에서 위험 신호가 확인되지 않았습니다.",
+    reasonCount: 0,
+  },
+  LIKELY_BENIGN: {
+    summary: "현재 확인된 정보에서는 위험 가능성이 낮습니다.",
+    reasonCount: 0,
+  },
+  SUSPICIOUS: {
+    summary: "주의가 필요한 신호가 확인되었습니다.",
+    reasonCount: 1,
+  },
+  LIKELY_MALICIOUS: {
+    summary: "악성 가능성이 높은 신호가 여러 개 확인되었습니다.",
+    reasonCount: 2,
+  },
+  MALICIOUS: {
+    summary:
+      "배송 확인을 빌미로 계정 정보 입력을 유도하는 정황이 확인되었습니다.",
+    reasonCount: 3,
+  },
+  UNKNOWN: {
+    summary: "현재 확인한 정보만으로는 이 URL을 판단하기 어렵습니다.",
+    reasonCount: 0,
+  },
+};
 function initialScreen(): Screen {
   const value = new URLSearchParams(location.search).get("screen");
   return screens.find(([key]) => key === value)?.[0] ?? "fast";
@@ -45,6 +84,18 @@ export function DesignPreviewPage() {
   const [elapsed, setElapsed] = useState(0);
   const [generation, setGeneration] = useState(0);
   const [receivedAt, setReceivedAt] = useState<number | null>(null);
+  const [deepRequest, setDeepRequest] = useState("");
+  const [verdictChoice, setVerdictChoice] = useState<FastVerdict>(() => {
+    if (initialScreen() === "unknown") return "UNKNOWN";
+    const value = new URLSearchParams(location.search).get("verdict");
+    return verdictChoices.some(([key]) => key === value)
+      ? (value as FastVerdict)
+      : "MALICIOUS";
+  });
+  const [modelChoice, setModelChoice] = useState(previewModels[0].id);
+  const [reasoningEffort, setReasoningEffort] = useState<string | null>(
+    previewModels[0].default_effort,
+  );
   useEffect(() => {
     if (!screen.endsWith("progress")) return;
     const start = performance.now();
@@ -55,15 +106,17 @@ export function DesignPreviewPage() {
     return () => window.clearInterval(timer);
   }, [screen, generation]);
   function select(value: Screen) {
+    const nextVerdict = value === "unknown" ? "UNKNOWN" : verdictChoice;
     setElapsed(0);
     setScreen(value);
+    setVerdictChoice(nextVerdict);
     setGeneration((value) => value + 1);
     setReceivedAt(null);
-    updateAddress(value, vtChoice);
+    updateAddress(value, vtChoice, nextVerdict);
     window.scrollTo({ top: 0, behavior: "instant" });
   }
-  function updateAddress(screen: Screen, vt: VtChoice) {
-    const params = new URLSearchParams({ screen, vt });
+  function updateAddress(screen: Screen, vt: VtChoice, verdict: FastVerdict) {
+    const params = new URLSearchParams({ screen, vt, verdict });
     history.replaceState(null, "", "/design-preview?" + params.toString());
   }
   const deep =
@@ -75,16 +128,20 @@ export function DesignPreviewPage() {
         : "completed"
       : vtChoice,
   );
-  let fast: FastResult | null = previewFast;
-  if (screen === "unknown")
-    fast = {
-      ...previewFast,
-      judgment: {
-        verdict: "UNKNOWN",
-        summary: "현재 확인한 정보만으로는 이 URL을 판단하기 어렵습니다.",
-        reasons: [],
-      },
-    };
+  const activeVerdict = screen === "unknown" ? "UNKNOWN" : verdictChoice;
+  const verdictExample = verdictExamples[activeVerdict];
+  let fast: FastResult | null = {
+    ...previewFast,
+    judgment: {
+      ...previewFast.judgment!,
+      verdict: activeVerdict,
+      summary: verdictExample.summary,
+      reasons: previewFast.judgment!.reasons.slice(
+        0,
+        verdictExample.reasonCount,
+      ),
+    },
+  };
   if (screen === "fast-progress" && elapsed < 9)
     fast = {
       ...previewFast,
@@ -95,7 +152,7 @@ export function DesignPreviewPage() {
     };
   const phase =
     screen === "failed"
-      ? "failed"
+      ? "cancelled"
       : screen === "deep" || (receivedAt !== null && elapsed >= receivedAt + 2)
         ? "completed"
         : receivedAt !== null
@@ -138,10 +195,29 @@ export function DesignPreviewPage() {
                 onChange={(event) => {
                   const next = event.target.value as VtChoice;
                   setVtChoice(next);
-                  updateAddress(screen, next);
+                  updateAddress(screen, next, verdictChoice);
                 }}
               >
                 {vtChoices.map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              LinkGuard 판정 예시
+              <select
+                value={activeVerdict}
+                onChange={(event) => {
+                  const next = event.target.value as FastVerdict;
+                  const nextScreen = screen === "unknown" ? "fast" : screen;
+                  setVerdictChoice(next);
+                  setScreen(nextScreen);
+                  updateAddress(nextScreen, vtChoice, next);
+                }}
+              >
+                {verdictChoices.map(([key, label]) => (
                   <option key={key} value={key}>
                     {label}
                   </option>
@@ -155,6 +231,7 @@ export function DesignPreviewPage() {
             key={screen}
             snapshot={previewDeep(phase, Math.floor(elapsed * 2) + 1)}
             url={previewUrl}
+            onClose={() => select("fast")}
           />
         ) : (
           <FastResultView
@@ -162,6 +239,24 @@ export function DesignPreviewPage() {
             result={fast}
             url={previewUrl}
             onDeep={() => select("deep-progress")}
+            deepRequest={{ value: deepRequest, onChange: setDeepRequest }}
+            deepModelSelection={{
+              models: previewModels,
+              value: modelChoice,
+              effort: reasoningEffort,
+              loading: false,
+              error: "",
+              onChange: (value) => {
+                const model = previewModels.find((item) => item.id === value);
+                if (!model) return;
+                setModelChoice(value);
+                if (!model.efforts.includes(reasoningEffort ?? ""))
+                  setReasoningEffort(model.default_effort);
+              },
+              onEffortChange: setReasoningEffort,
+              onRetry: () => {},
+            }}
+            completedAt={Date.parse("2026-10-12T13:42:00+09:00")}
             virustotal={vt}
           />
         )}

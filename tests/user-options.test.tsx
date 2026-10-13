@@ -6,6 +6,7 @@ import {
 } from "../src/service/service-client.js";
 import { ServiceEntry } from "../src/components/ServiceEntry";
 import { FastResultView } from "../src/components/ServiceResults";
+import { Header } from "../src/components/ui";
 import { previewFast, previewUrl } from "../src/service/preview-fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -168,6 +169,11 @@ describe("server registered fast models", () => {
   );
 });
 describe("optional deep request", () => {
+  it("links the default header brand to the main page", () => {
+    const html = renderToStaticMarkup(<Header />);
+    expect(html).toContain('href="/"');
+    expect(html).toContain('aria-label="LinkGuard 메인 화면으로"');
+  });
   it("preserves all four identity fields and trims only the optional request boundary", async () => {
     const fetch = vi.fn(async () =>
       Response.json({ run_id: "r1", events_url: "/api/deep/r1/events" }),
@@ -181,7 +187,12 @@ describe("optional deep request", () => {
       result_revision: "r1",
     };
     await service.deep(
-      { ...identity, request_text: "  로그인 흐름\n확인해 주세요.  " },
+      {
+        ...identity,
+        request_text: "  로그인 흐름\n확인해 주세요.  ",
+        model_choice: "claude-other",
+        reasoning_effort: "max",
+      },
       service.begin(),
     );
     await service.deep(
@@ -192,6 +203,8 @@ describe("optional deep request", () => {
     expect(JSON.parse(calls[0][1].body as string)).toEqual({
       ...identity,
       request_text: "로그인 흐름\n확인해 주세요.",
+      model_choice: "claude-other",
+      reasoning_effort: "max",
     });
     expect(JSON.parse(calls[1][1].body as string)).toEqual(identity);
   });
@@ -225,10 +238,12 @@ describe("optional deep request", () => {
         deepRequest={{ value: "확인 요청", onChange: () => {} }}
       />,
     );
-    expect(html).toContain('for="deep-request-text"');
-    expect(html).toContain("구체적으로 확인하고 싶은 내용이 있나요? (선택)");
+    expect(html).toContain('aria-label="심층 분석 요청 사항"');
+    expect(html).toContain(
+      "확인하고 싶은 내용을 작성해주세요. (예: 로그인 정보가 어디로 전송되는지 확인해 주세요.)",
+    );
     expect(html).toMatch(/<textarea[^>]+disabled=""/);
-    expect(html).toContain("비워 두어도 분석할 수 있습니다.");
+    expect(html).not.toContain("비워 두면 기본 심층 분석을 진행합니다.");
   });
 });
 describe("model selection entry states", () => {
@@ -257,7 +272,7 @@ describe("model selection entry states", () => {
         }}
       />,
     );
-    expect(html).toContain('id="entry-model-status" role="alert"');
+    expect(html).toContain('role="alert"');
     expect(html).toContain("모델 목록 다시 불러오기");
     expect(html).toMatch(/<button[^>]+type="submit"[^>]+disabled=""/);
   });

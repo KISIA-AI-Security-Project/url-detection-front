@@ -18,10 +18,12 @@ import {
 import {
   previewDeep,
   previewFast,
+  previewModels,
   previewUrl,
   previewVt,
 } from "../src/service/preview-fixtures";
 import { ServiceClient, validateFast } from "../src/service/service-client.js";
+import { popupReasons, popupVerdicts } from "../src/service/popup-model";
 import type { FastResult, FastVerdict } from "../src/service/contracts";
 import { VirusTotalResult } from "../src/components/VirusTotalResult";
 
@@ -34,18 +36,22 @@ describe("authoritative fast results", () => {
     ["MALICIOUS", "악성"],
     ["UNKNOWN", "판단불가"],
     ["SUSPICIOUS", "의심"],
-  ])("accepts and displays the server verdict %s without reclassification", (verdict, label) => {
-    const result: FastResult = {
-      ...previewFast,
-      judgment: { ...previewFast.judgment!, verdict },
-    };
-    expect(validateFast(result, result.job_id, result.attempt)).toBe(result);
-    const html = renderToStaticMarkup(
-      <FastResultView result={result} url={previewUrl} onDeep={() => {}} />,
-    );
-    expect(html).toMatch(new RegExp(`${label}</h2>`));
-    expect(html).toContain(result.judgment!.summary);
-  });
+  ])(
+    "accepts and displays the server verdict %s without reclassification",
+    (verdict, label) => {
+      const result: FastResult = {
+        ...previewFast,
+        judgment: { ...previewFast.judgment!, verdict },
+      };
+      expect(validateFast(result, result.job_id, result.attempt)).toBe(result);
+      const html = renderToStaticMarkup(
+        <FastResultView result={result} url={previewUrl} onDeep={() => {}} />,
+      );
+      expect(html).toMatch(new RegExp(`${label}</h2>`));
+      expect(html).toContain(`data-verdict="${verdict}"`);
+      expect(html).toContain(result.judgment!.summary);
+    },
+  );
   it("distinguishes collecting material from model judgment by the context revision", () => {
     const pending: FastResult = {
       ...previewFast,
@@ -59,12 +65,112 @@ describe("authoritative fast results", () => {
     ).toBe("judge");
     expect(fastPhase(previewFast)).toBe("done");
   });
+  it("keeps the result-shaped loading preview decorative and exposes only the current fast phase", () => {
+    const pending: FastResult = {
+      ...previewFast,
+      judgment_status: "pending",
+      judgment: null,
+      context_revision: null,
+    };
+    const collecting = renderToStaticMarkup(
+      <FastResultView
+        result={pending}
+        url={previewUrl}
+        onDeep={() => {}}
+        virustotal={previewVt}
+      />,
+    );
+    expect(collecting).toContain(
+      'class="fast-pending-preview" aria-hidden="true"',
+    );
+    expect(collecting).toContain('class="fast-progress-card" role="status"');
+    expect(collecting).toContain("빠른 분석 진행 중");
+    expect(collecting).toContain('class="fast-progress-steps"');
+    expect(collecting).toContain("자료 수집");
+    expect(collecting).toContain("모델 판단");
+    expect(collecting).toContain("대기 중");
+    expect(collecting.match(/fast-pending-section/g)).toHaveLength(3);
+    expect(collecting).toContain("fast-skeleton-request");
+    expect(collecting).not.toContain(previewUrl);
+    expect(collecting).not.toContain("VirusTotal 조회 결과");
+
+    const judging = renderToStaticMarkup(
+      <FastResultView
+        result={{ ...pending, context_revision: previewFast.context_revision }}
+        url={previewUrl}
+        onDeep={() => {}}
+      />,
+    );
+    expect(judging).toContain(">모델 판단 중</strong><span>진행 중</span>");
+    expect(judging).toContain(
+      "수집한 자료를 바탕으로 결과를 생성하고 있습니다.",
+    );
+    expect(judging).toContain("완료");
+  });
   it("shows only facts linked to a reason, including the facts needed to qualify that observation", () => {
     expect(
       reasonFacts(previewFast.judgment!.reasons[1], previewFast).map(
         (fact) => fact.fact_id,
       ),
     ).toEqual(["F2", "F6", "F4"]);
+  });
+  it("keeps the verdict first and combines each reason with its linked details", () => {
+    const html = renderToStaticMarkup(
+      <FastResultView
+        result={previewFast}
+        url={previewUrl}
+        onDeep={() => {}}
+        virustotal={previewVt}
+        deepModelSelection={{
+          models: previewModels,
+          value: previewModels[0].id,
+          effort: previewModels[0].default_effort,
+          loading: false,
+          error: "",
+          onChange: () => {},
+          onEffortChange: () => {},
+          onRetry: () => {},
+        }}
+      />,
+    );
+    expect(html.indexOf('class="fast-verdict-card')).toBeLessThan(
+      html.indexOf('id="fast-reasons"'),
+    );
+    expect(html).toContain('class="text-button fast-result-back" href="/"');
+    expect(html).toContain("다른 URL 검사");
+    expect(html.indexOf('id="fast-reasons"')).toBeLessThan(
+      html.indexOf("fast-vt-section"),
+    );
+    expect(html).not.toContain("근거 상세 보기");
+    expect(html).not.toContain("판정 이유 보기");
+    expect(html).not.toContain("fast-verdict-label");
+    expect(html).toContain("기술정보 표시");
+    expect(html).toContain('class="entry-options deep-request-actions"');
+    expect(html).toContain("GPT-6 Astra");
+  });
+  it("uses one GPT preview catalog for the main and additional-analysis pickers", () => {
+    expect(previewModels.map(({ id }) => id)).toEqual([
+      "gpt-6-astra",
+      "gpt-6.1-sol",
+      "gpt-6-luna",
+    ]);
+    expect(previewModels.every(({ efforts }) => efforts.length === 5)).toBe(
+      true,
+    );
+  });
+  it("keeps section numbering consecutive when VirusTotal was not selected", () => {
+    const html = renderToStaticMarkup(
+      <FastResultView
+        result={previewFast}
+        url={previewUrl}
+        onDeep={() => {}}
+        virustotal={null}
+      />,
+    );
+    expect(html).toContain(
+      'aria-hidden="true">02</span><h2 id="deep-request-title">추가 분석</h2>',
+    );
+    expect(html).not.toContain("fast-vt-section");
   });
   it("handles cyclic conditions, repeated IDs and missing IDs without adding unrelated facts", () => {
     const result: FastResult = {
@@ -119,6 +225,45 @@ describe("authoritative fast results", () => {
   });
 });
 
+describe("extension popup result summary", () => {
+  it.each<[FastVerdict, string]>([
+    ["BENIGN", "안전"],
+    ["LIKELY_BENIGN", "안전"],
+    ["LIKELY_MALICIOUS", "주의"],
+    ["MALICIOUS", "위험"],
+    ["UNKNOWN", "주의"],
+    ["SUSPICIOUS", "주의"],
+  ])("maps the API verdict %s to the popup label %s", (verdict, label) => {
+    expect(popupVerdicts[verdict].label).toBe(label);
+  });
+
+  it("keeps server reason order and limits the popup to three items", () => {
+    const result: FastResult = {
+      ...previewFast,
+      judgment: {
+        ...previewFast.judgment!,
+        reasons: [
+          ...previewFast.judgment!.reasons,
+          { text: "네 번째 근거", related_fact_ids: [] },
+        ],
+      },
+    };
+    expect(popupReasons(result)).toEqual(
+      result.judgment!.reasons.slice(0, 3).map((reason) => reason.text),
+    );
+  });
+
+  it("does not derive reasons when the API judgment was not accepted", () => {
+    expect(
+      popupReasons({
+        ...previewFast,
+        judgment_status: "failed",
+        judgment: null,
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("independent VirusTotal results", () => {
   it("preserves provider counts while listing only flagged engines and omitting external links", () => {
     const html = renderToStaticMarkup(
@@ -156,7 +301,7 @@ describe("independent VirusTotal results", () => {
       expect(html).not.toContain("<details");
     },
   );
-  it("initially limits vendors to three without changing report totals", () => {
+  it("renders every flagged vendor in a four-row scroll area without changing report totals", () => {
     const html = renderToStaticMarkup(
       <VirusTotalResult
         result={{
@@ -172,11 +317,12 @@ describe("independent VirusTotal results", () => {
         }}
       />,
     );
-    expect(html.match(/class="vt-engine-heading"/g)).toHaveLength(3);
-    expect(html).not.toContain("업체 D");
-    expect(html).not.toContain("업체 E");
-    expect(html).toContain("검사 업체 모두 보기");
-    expect(html).toContain('aria-expanded="false"');
+    expect(html.match(/class="vt-engine-heading"/g)).toHaveLength(5);
+    expect(html).toContain("업체 D");
+    expect(html).toContain("업체 E");
+    expect(html).toContain('class="vt-engines is-scrollable"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).not.toContain("검사 업체 모두 보기");
     const text = html.replace(/<[^>]+>/g, "");
     expect(text).toContain("위험 17개");
     expect(text).toContain("의심 2개");
@@ -240,24 +386,72 @@ describe("independent VirusTotal results", () => {
 });
 
 describe("bounded public deep presentation", () => {
-  it("changes the page title on report arrival and retains the partial-report label on failure", () => {
+  it("shows the boxed progress, capture and work details only while deep analysis is running", () => {
+    const running = renderToStaticMarkup(
+      <DeepResultView snapshot={previewDeep("collect")} url={previewUrl} />,
+    );
+    expect(running).toContain('class="deep-running-card"');
+    expect(running).toContain('class="deep-running-preview-lower"');
+    expect(running.match(/class="state-mark/g)).toHaveLength(5);
+    expect(running).not.toContain('class="works-section"');
+    expect(running).toContain('class="capture-section"');
+    expect(running).not.toContain('class="manager-section"');
+
+    const checking = renderToStaticMarkup(
+      <DeepResultView snapshot={previewDeep("work")} url={previewUrl} />,
+    );
+    expect(checking).toContain('class="deep-running-preview"');
+    expect(checking).toContain('class="deep-running-overview"');
+    expect(checking).toContain('class="deep-running-capture"');
+    expect(checking).not.toContain('class="capture-dialog"');
+    expect(checking).toContain('class="deep-running-work-list"');
+    expect(checking.match(/aria-expanded="false"/g)).toHaveLength(4);
+    expect(checking).toContain('aria-controls="deep-running-work-0"');
+    expect(checking).not.toContain("핵심 확인 내용");
+    expect(checking).toContain("로그인 유도 화면 확인");
+    expect(checking).toContain("이메일 주소와 비밀번호");
+
+    const completed = renderToStaticMarkup(
+      <DeepResultView snapshot={previewDeep("completed")} url={previewUrl} />,
+    );
+    expect(completed).not.toContain('class="deep-running-card"');
+    expect(completed).toContain('class="deep-columns"');
+    expect(completed).toContain('class="capture-section"');
+
+    const cancelled = renderToStaticMarkup(
+      <DeepResultView
+        snapshot={previewDeep("cancelled")}
+        url={previewUrl}
+        onClose={() => {}}
+      />,
+    );
+    expect(cancelled).toContain('class="deep-running-cancelled"');
+    expect(cancelled).toContain("분석이 취소되었습니다.");
+    expect(cancelled).toContain("요청한 심층 분석이 중단되었습니다.");
+    expect(cancelled).toContain(">닫기</button>");
+    expect(cancelled).not.toContain('class="deep-columns"');
+  });
+  it("changes the page title on completion and retains the partial-report label on failure", () => {
     vi.stubGlobal("window", { location: { origin: "https://example.com" } });
     for (const phase of [
       "collect",
       "work",
       "completed",
       "finalizing",
+      "cancelled",
       "failed",
     ] as const) {
       const html = renderToStaticMarkup(
         <DeepResultView snapshot={previewDeep(phase)} url={previewUrl} />,
       );
       expect(html).not.toContain("VirusTotal");
-      expect(html.includes("심층 분석 결과")).toBe(
-        phase === "completed" || phase === "finalizing",
-      );
+      expect(html.includes("심층 분석 결과")).toBe(phase === "completed");
       if (phase === "failed")
         expect(html).toContain("심층 분석을 완료하지 못했습니다");
+      if (phase === "cancelled") {
+        expect(html).toContain("분석이 취소되었습니다.");
+        expect(html).not.toContain("심층 분석을 완료하지 못했습니다");
+      }
     }
     const partial = renderToStaticMarkup(
       <DeepResultView
@@ -307,6 +501,9 @@ describe("bounded public deep presentation", () => {
     expect(
       taskPresentation({ ...task, status: "returned" }, "completed").label,
     ).toBe("완료");
+    expect(
+      taskPresentation({ ...task, status: "running" }, "cancelled"),
+    ).toEqual({ state: "stopped", label: "종료" });
   });
   it("does not mark a work complete just because its tasks returned", () => {
     const snapshot = previewDeep("work");
@@ -405,7 +602,9 @@ describe("bounded public deep presentation", () => {
   it("accepts signed HTTPS image URLs and local preview images while rejecting executable or remote HTTP URLs", () => {
     vi.stubGlobal("window", { location: { origin: "http://127.0.0.1:5190" } });
     const file = previewDeep("plan").files[0];
-    expect(imageUrl(file)).toBe("http://127.0.0.1:5190/preview-capture.jpg");
+    expect(imageUrl(file)).toMatch(
+      /^http:\/\/127\.0\.0\.1:5190\/.+preview-capture.*\.jpg$/,
+    );
     expect(
       imageUrl({
         ...file,
@@ -533,5 +732,21 @@ describe("asynchronous request ownership", () => {
         () => {},
       ),
     ).rejects.toThrow();
+  });
+  it("finishes the deep stream when the server publishes cancellation", async () => {
+    const service = clientWithStream("deep", [
+      previewDeep("work"),
+      previewDeep("cancelled"),
+    ]);
+    const statuses: string[] = [];
+    await service.streamDeep(
+      {
+        run_id: "design-preview",
+        events_url: "/api/deep/design-preview/events",
+      },
+      service.begin(),
+      (value) => statuses.push(value.status),
+    );
+    expect(statuses).toEqual(["running", "cancelled"]);
   });
 });

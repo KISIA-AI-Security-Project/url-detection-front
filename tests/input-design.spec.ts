@@ -9,6 +9,12 @@ const catalog = {
   default_model_choice: "claude-sonnet",
   models: [
     {
+      id: "claude-haiku",
+      label: "Claude Haiku 5.5",
+      efforts,
+      default_effort: "medium",
+    },
+    {
       id: "claude-opus",
       label: "Claude Opus 5.5",
       efforts,
@@ -112,7 +118,7 @@ async function prepare(page: Page, unusual = false) {
 async function visibleBounds(page: Page) {
   const measurements = await page
     .locator(
-      "#entry-url, .entry-submit, #entry-model, #entry-effort, .entry-vt-option, .entry-model-retry",
+      "#entry-url, .entry-submit, .entry-model-trigger, .entry-vt-option, .entry-model-retry",
     )
     .evaluateAll((elements) =>
       elements.map((element) => {
@@ -140,18 +146,32 @@ test("input hierarchy: real service mock, responsive controls, visible keyboard 
   page,
 }, testInfo) => {
   const { posts, remote } = await prepare(page);
-  const model = page.getByLabel("빠른 분석 모델", { exact: true });
-  const effort = page.getByLabel("추론 노력 (effort)", { exact: true });
+  const picker = page.getByRole("button", {
+    name: "모델 및 추론 설정",
+    exact: true,
+  });
   const url = page.getByLabel("분석할 URL", { exact: true });
-  await expect(model).toHaveValue("claude-sonnet");
-  await expect(effort).toHaveValue("high");
-  await expect(
-    page.getByRole("group", { name: "빠른 분석 설정" }),
-  ).toBeVisible();
+  await expect(url).toHaveAttribute(
+    "placeholder",
+    "분석하고 싶은 URL을 입력해 주세요 (예: https://example.com)",
+  );
+  await expect(picker).toContainText("Claude Sonnet 5.5");
+  await expect(picker).toContainText("High");
   await expect(
     page.getByText("선택한 모델로 빠른 분석을 진행합니다."),
   ).toHaveCount(0);
   await url.fill("https://www.iana.org/domains/reserved");
+  const inputBorderBeforeFocus = await page
+    .locator(".entry-url-control")
+    .evaluate((element) => getComputedStyle(element).borderColor);
+  await url.focus();
+  await expect
+    .poll(() =>
+      page
+        .locator(".entry-url-control")
+        .evaluate((element) => getComputedStyle(element).borderColor),
+    )
+    .toBe(inputBorderBeforeFocus);
   await page
     .getByRole("heading", { name: "이 링크, 열어도 괜찮을까요?" })
     .click();
@@ -168,10 +188,9 @@ test("input hierarchy: real service mock, responsive controls, visible keyboard 
   await page.setViewportSize({ width: 390, height: 844 });
   await url.focus();
   for (const selector of [
-    ".entry-submit",
-    "#entry-model",
-    "#entry-effort",
     ".entry-vt-option input",
+    ".entry-model-trigger",
+    ".entry-submit",
   ]) {
     const locator = page.locator(selector);
     const unfocusedShadow = await locator.evaluate(
@@ -201,19 +220,47 @@ test("input hierarchy: real service mock, responsive controls, visible keyboard 
     expect(focus.right).toBeLessThanOrEqual(focus.viewport - 5);
     expect(focus.top).toBeGreaterThanOrEqual(focus.headerBottom);
     expect(focus.bottom).toBeLessThanOrEqual(focus.height);
-    if (selector === "#entry-model")
+    if (selector === ".entry-model-trigger")
       await page.screenshot({
         path: `${evidence}/entry-keyboard-model-390.png`,
         fullPage: true,
       });
   }
+  const vt = page.getByRole("checkbox", {
+    name: "VirusTotal 조회 결과 함께 보기",
+  });
+  await vt.focus();
   await page.keyboard.press("Space");
-  await expect(
-    page.getByRole("checkbox", { name: "VirusTotal 조회 결과 함께 보기" }),
-  ).toBeChecked();
+  await expect(vt).toBeChecked();
   await page.keyboard.press("Space");
-  await model.selectOption("claude-opus");
-  await expect(effort).toHaveValue("high");
+  await picker.click();
+  const pickerDialog = page.getByRole("dialog", {
+    name: "모델 및 추론 설정",
+  });
+  await expect(pickerDialog.locator(".entry-model-option")).toHaveCount(15);
+  const pickerLayout = await pickerDialog.evaluate((panel) => {
+    const list = panel.querySelector(".entry-model-list");
+    const style = getComputedStyle(panel);
+    return {
+      width: panel.getBoundingClientRect().width,
+      paddingLeft: style.paddingLeft,
+      paddingRight: style.paddingRight,
+      listClientHeight: list?.clientHeight ?? 0,
+      listScrollHeight: list?.scrollHeight ?? 0,
+    };
+  });
+  expect(pickerLayout.width).toBeLessThanOrEqual(221);
+  expect(pickerLayout.paddingLeft).toBe("0px");
+  expect(pickerLayout.paddingRight).toBe("0px");
+  expect(pickerLayout.listClientHeight).toBeLessThanOrEqual(200);
+  expect(pickerLayout.listScrollHeight).toBeGreaterThan(
+    pickerLayout.listClientHeight,
+  );
+  await pickerDialog
+    .getByRole("button", { name: "Claude Opus 5.5 High", exact: true })
+    .click();
+  await expect(picker).toContainText("Claude Opus 5.5");
+  await expect(picker).toContainText("High");
   await url.focus();
   await page.keyboard.press("Enter");
   await expect(
@@ -251,12 +298,12 @@ test("long catalog errors and unsupported model stay visible at narrow widths", 
     fullPage: true,
   });
   await page.getByRole("button", { name: "모델 목록 다시 불러오기" }).click();
-  await expect(
-    page.getByLabel("추론 노력 (effort)", { exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByText("이 모델은 effort 설정을 지원하지 않습니다."),
-  ).toBeVisible();
+  const picker = page.getByRole("button", {
+    name: "모델 및 추론 설정",
+    exact: true,
+  });
+  await expect(picker).toContainText("LongClaudeModel");
+  await expect(picker).not.toContainText("설정 없음");
   for (const width of [320, 390, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await visibleBounds(page);

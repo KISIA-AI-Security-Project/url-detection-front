@@ -131,8 +131,11 @@ test("actual service page: registered model, optional deep request, retry and se
   await page
     .getByLabel("분석할 URL", { exact: true })
     .fill("https://example.test/login");
-  const model = page.getByLabel("빠른 분석 모델", { exact: true });
-  await expect(model).toBeDisabled();
+  const picker = page.getByRole("button", {
+    name: "모델 및 추론 설정",
+    exact: true,
+  });
+  await expect(picker).toBeDisabled();
   await expect(page.getByRole("status")).toContainText("사용 가능한 모델");
   await expect(
     page.getByRole("button", { name: "분석 시작", exact: true }),
@@ -140,27 +143,30 @@ test("actual service page: registered model, optional deep request, retry and se
   releaseModels();
   await expect(page.getByRole("alert")).toContainText("모델 목록 조회 실패");
   await page.getByRole("button", { name: "모델 목록 다시 불러오기" }).click();
-  await expect(model).toHaveValue("claude-first");
-  const effort = page.getByLabel("추론 노력 (effort)", { exact: true });
-  await expect(effort).toHaveValue("medium");
-  await effort.selectOption("low");
-  await model.focus();
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("Enter");
-  await expect(model).toHaveValue("claude-second");
-  await expect(effort).toHaveValue("low");
-  await page.keyboard.press("Escape");
-  await effort.selectOption("max");
-  await model.selectOption("claude-first");
-  await expect(effort).toHaveValue("medium");
-  await model.selectOption("claude-plain");
-  await expect(effort).toBeDisabled();
-  await expect(
-    page.getByText("이 모델은 effort 설정을 지원하지 않습니다."),
-  ).toBeVisible();
-  await model.selectOption("claude-second");
-  await expect(effort).toHaveValue("high");
-  await effort.selectOption("xhigh");
+  await expect(picker).toContainText("Claude 기본 모델");
+  await expect(picker).toContainText("Medium");
+  const pickerDialog = page.getByRole("dialog", {
+    name: "모델 및 추론 설정",
+  });
+  const choose = async (name: string) => {
+    await picker.click();
+    await pickerDialog.getByRole("button", { name, exact: true }).click();
+  };
+  await choose("Claude 기본 모델 Low");
+  await expect(picker).toContainText("Low");
+  await choose("Claude 추가 모델 Low");
+  await expect(picker).toContainText("Claude 추가 모델");
+  await expect(picker).toContainText("Low");
+  await choose("Claude 추가 모델 Max");
+  await expect(picker).toContainText("Max");
+  await choose("Claude 기본 모델 Medium");
+  await expect(picker).toContainText("Medium");
+  await choose("Claude effort 미지원 예시");
+  await expect(picker).toContainText("Claude effort 미지원 예시");
+  await choose("Claude 추가 모델 High");
+  await expect(picker).toContainText("High");
+  await choose("Claude 추가 모델 XHigh");
+  await expect(picker).toContainText("XHigh");
   await page.setViewportSize({ width: 1024, height: 900 });
   expect(
     await page.evaluate(
@@ -183,13 +189,14 @@ test("actual service page: registered model, optional deep request, retry and se
     model_choice: "claude-second",
     reasoning_effort: "xhigh",
   });
-  await expect(model).toHaveCount(0);
-  await expect(effort).toHaveCount(0);
+  await expect(picker).toHaveCount(1);
+  await expect(picker).toContainText("Claude 추가 모델");
+  await expect(picker).toContainText("XHigh");
   const field = page.getByRole("textbox", {
-    name: "구체적으로 확인하고 싶은 내용이 있나요? (선택)",
+    name: "심층 분석 요청 사항",
   });
   const deepButton = page.getByRole("button", {
-    name: "심층분석 요청",
+    name: "심층 분석 시작",
     exact: true,
   });
   await expect(deepButton).toBeEnabled();
@@ -228,6 +235,8 @@ test("actual service page: registered model, optional deep request, retry and se
     context_revision: previewFast.context_revision,
     result_revision: previewFast.result_revision,
     request_text: "로그인 정보가 어디로 전송되는지 확인해 주세요.",
+    model_choice: "claude-second",
+    reasoning_effort: "xhigh",
   });
   await page
     .getByRole("button", { name: "빠른 분석 결과", exact: true })
@@ -380,7 +389,7 @@ for (const editedText of ["이번에는 로그인 정보 전송을 확인해 주
       .getByRole("button", { name: "빠른 분석 결과", exact: true })
       .click();
     const field = page.getByRole("textbox", {
-      name: "구체적으로 확인하고 싶은 내용이 있나요? (선택)",
+      name: "심층 분석 요청 사항",
     });
     await field.fill("작성 중인 질문");
     await field.fill(newText);
@@ -400,7 +409,7 @@ for (const editedText of ["이번에는 로그인 정보 전송을 확인해 주
     });
     await expect(field).toHaveValue(newText);
     await page
-      .getByRole("button", { name: "심층분석 요청", exact: true })
+      .getByRole("button", { name: "심층 분석 시작", exact: true })
       .click();
     await expect(
       page.getByRole("heading", { name: "심층 분석 결과", exact: true }),

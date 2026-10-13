@@ -40,6 +40,8 @@ export interface DeepIdentity {
   context_revision: string;
   result_revision: string;
   request_text?: string;
+  model_choice?: string;
+  reasoning_effort?: string | null;
 }
 export interface AnalysisModels {
   default_model_choice: string;

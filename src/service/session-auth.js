@@ -3,8 +3,9 @@ import {WebAuth as PublicSignupAuth, AuthenticationRequired, SignupFailure, sign
 // Refresh credentials live behind an opaque HttpOnly cookie. Only the access
 // token needed by the existing JWT-protected API is held in this document.
 export class WebAuth extends PublicSignupAuth {
-  constructor(config) {
+  constructor(config, requestBase = '') {
     super(config);
+    this.requestBase = requestBase ? new URL(requestBase).origin : '';
     this.listeners = new Set();
     this.pendingSession = null;
     this.pendingLogin = null;
@@ -37,11 +38,14 @@ export class WebAuth extends PublicSignupAuth {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000);
     try {
-      const response = await fetch('/api/auth/' + path, {
+      const endpoint = this.requestBase
+        ? new URL('/api/auth/' + path, this.requestBase).href
+        : '/api/auth/' + path;
+      const response = await fetch(endpoint, {
         method: body === undefined ? 'GET' : 'POST',
         headers: {'X-LinkGuard-Request':'v1', ...(body === undefined ? {} : {'content-type':'application/json'})},
         ...(body === undefined ? {} : {body:JSON.stringify(body)}),
-        credentials:'same-origin',cache:'no-store',referrerPolicy:'same-origin',signal:controller.signal
+        credentials:this.requestBase ? 'include' : 'same-origin',cache:'no-store',referrerPolicy:'same-origin',signal:controller.signal
       });
       let result;
       try {result = await response.json();} catch {throw new Error('로그인 서버의 응답을 확인하지 못했습니다.');}

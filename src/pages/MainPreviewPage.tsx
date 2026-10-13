@@ -3,7 +3,7 @@ import { LogIn } from "lucide-react";
 import { ServiceEntry } from "../components/ServiceEntry";
 import { Button, Header } from "../components/ui";
 import type { AnalysisHistory } from "../service/contracts";
-import { previewUrl } from "../service/preview-fixtures";
+import { previewModels, previewUrl } from "../service/preview-fixtures";
 import { normalizeUrl } from "../lib/url";
 
 const examples: AnalysisHistory[] = [
@@ -37,6 +37,10 @@ export function MainPreviewPage() {
   );
   const [input, setInput] = useState("");
   const [vtSelected, setVtSelected] = useState(false);
+  const [modelChoice, setModelChoice] = useState(previewModels[0].id);
+  const [reasoningEffort, setReasoningEffort] = useState(
+    previewModels[0].default_effort,
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const authenticated = mode === "history" || mode === "new";
@@ -88,7 +92,7 @@ export function MainPreviewPage() {
           )
         }
       />
-      <main className="report-main service-main">
+      <main className="report-main service-main service-entry-main">
         <div className="entry-preview-toolbar">
           <nav aria-label="디자인 확인 화면">
             <span aria-current="page">메인 화면</span>
@@ -138,6 +142,20 @@ export function MainPreviewPage() {
           }
           onLogin={login}
           error={error}
+          modelSelection={{
+            models: previewModels,
+            value: modelChoice,
+            effort: reasoningEffort,
+            loading: false,
+            error: "",
+            onChange: (value) => {
+              const model = previewModels.find((item) => item.id === value);
+              setModelChoice(value);
+              setReasoningEffort(model?.default_effort ?? null);
+            },
+            onEffortChange: setReasoningEffort,
+            onRetry: () => undefined,
+          }}
         />
         <footer className="page-footer">
           <span>LinkGuard · 디자인 미리보기</span>

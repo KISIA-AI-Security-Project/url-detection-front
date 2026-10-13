@@ -1,5 +1,7 @@
 import {WebAuth as PublicSignupAuth} from './auth.js';
+import type {ServiceConfig} from './contracts';
 export class WebAuth extends PublicSignupAuth {
+  constructor(config: ServiceConfig['auth'], requestBase?: string);
   login(email: string, password: string): Promise<void>;
   subscribe(listener: () => void): () => void;
   restoreSession(): Promise<boolean>;

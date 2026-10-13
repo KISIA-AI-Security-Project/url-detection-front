@@ -1,4 +1,3 @@
-import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { VtResult } from "../service/contracts";
 import { Spinner } from "./ui";
@@ -97,49 +96,30 @@ function FlaggedEngineResults({
   engines: NonNullable<VtResult["engines"]>;
   emptyText: string;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const listId = useId();
   if (!engines.length) return <p className="vt-empty">{emptyText}</p>;
-  const visible = showAll ? engines : engines.slice(0, 3);
   return (
-    <>
-      <ul className="vt-engines" id={listId} aria-label="검사 업체별 결과">
-        {visible.map((engine, index) => (
-          <li key={`${engine.category}:${engine.name}:${index}`}>
-            <div className="vt-engine-heading">
-              <strong>{engine.name}</strong>
-              <span
-                className={
-                  engine.category === "malicious"
-                    ? "vt-danger"
-                    : "vt-suspicious"
-                }
-              >
-                {engine.category === "malicious" ? "위험" : "의심"}
-              </span>
-            </div>
-            {typeof engine.result === "string" && engine.result && (
-              <p>{engine.result}</p>
-            )}
-          </li>
-        ))}
-      </ul>
-      {engines.length > 3 && (
-        <button
-          className="text-button vt-more"
-          type="button"
-          aria-expanded={showAll}
-          aria-controls={listId}
-          onClick={() => setShowAll(!showAll)}
-        >
-          {showAll ? "접기" : "검사 업체 모두 보기"}
-          <ChevronDown
-            size={14}
-            className={showAll ? "rotated" : ""}
-            aria-hidden="true"
-          />
-        </button>
-      )}
-    </>
+    <ul
+      className={`vt-engines${engines.length > 4 ? " is-scrollable" : ""}`}
+      aria-label="검사 업체별 결과"
+      tabIndex={engines.length > 4 ? 0 : undefined}
+    >
+      {engines.map((engine, index) => (
+        <li key={`${engine.category}:${engine.name}:${index}`}>
+          <div className="vt-engine-heading">
+            <strong>{engine.name}</strong>
+            <span
+              className={
+                engine.category === "malicious" ? "vt-danger" : "vt-suspicious"
+              }
+            >
+              {engine.category === "malicious" ? "위험" : "의심"}
+            </span>
+          </div>
+          {typeof engine.result === "string" && engine.result && (
+            <p>{engine.result}</p>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

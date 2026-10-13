@@ -1,7 +1,34 @@
-import type { DeepSnapshot, FastResult, VtResult } from "./contracts";
+import type {
+  AnalysisModels,
+  DeepSnapshot,
+  FastResult,
+  VtResult,
+} from "./contracts";
 
-// Fictional examples. These are reachable only through the labelled design preview.
+const previewCaptureUrl = "/src/assets/preview-capture.jpg";
+
+// Preview-only examples. The production UI continues to use the server catalog.
 export const previewUrl = "https://parcel-verify.example/delivery";
+export const previewModels: AnalysisModels["models"] = [
+  {
+    id: "gpt-6-astra",
+    label: "GPT-6 Astra",
+    efforts: ["low", "medium", "high", "xhigh", "max"],
+    default_effort: "medium",
+  },
+  {
+    id: "gpt-6.1-sol",
+    label: "GPT-6.1 Sol",
+    efforts: ["low", "medium", "high", "xhigh", "max"],
+    default_effort: "medium",
+  },
+  {
+    id: "gpt-6-luna",
+    label: "GPT-6 Luna",
+    efforts: ["low", "medium", "high", "xhigh", "max"],
+    default_effort: "medium",
+  },
+];
 export const previewVt: VtResult = {
   schema_version: "virustotal-url-report-1",
   status: "completed",
@@ -195,7 +222,14 @@ const taskData = [
   ],
 ];
 export function previewDeep(
-  phase: "collect" | "plan" | "work" | "finalizing" | "completed" | "failed",
+  phase:
+    | "collect"
+    | "plan"
+    | "work"
+    | "finalizing"
+    | "completed"
+    | "cancelled"
+    | "failed",
   sequence = 1,
 ): DeepSnapshot {
   const started = !["collect", "plan"].includes(phase);
@@ -234,7 +268,9 @@ export function previewDeep(
               : index === 2
                 ? phase === "failed"
                   ? "failed"
-                  : "running"
+                  : phase === "cancelled"
+                    ? "ended_by_manager"
+                    : "running"
                 : "waiting",
           result_ref: finished || index < 2 ? `report:${id}` : null,
         }))
@@ -264,12 +300,16 @@ export function previewDeep(
                   {
                     id: "M2",
                     status:
-                      finished || phase === "failed" ? "returned" : "running",
+                      finished || phase === "failed" || phase === "cancelled"
+                        ? "returned"
+                        : "running",
                     summary: finished
                       ? "여러 업무에서 확인한 내용이 같은 로그인 유도 흐름으로 이어집니다. 입력 요구와 전송 대상의 관계를 종합해 최종 결론을 정리했습니다."
                       : phase === "failed"
                         ? "로그인 요구 화면을 확인했습니다. 나머지 확인 업무는 완료하지 못했습니다."
-                        : null,
+                        : phase === "cancelled"
+                          ? "사용자 요청으로 심층 분석을 중단했습니다."
+                          : null,
                     situation: "확인 결과 검토 중",
                     review_work_ids: finished
                       ? ["W1", "W2", "W3", "W4"]
@@ -291,7 +331,7 @@ export function previewDeep(
             {
               file_ref: "capture:example",
               content_type: "image/jpeg",
-              url: "/preview-capture.jpg",
+              url: previewCaptureUrl,
               source_metadata: {
                 action_id: "initial-screen",
                 context: { scenario_id: "initial-input" },

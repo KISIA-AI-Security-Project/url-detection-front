@@ -1,11 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "LinkGuard — URL 분석 (목업)",
+  "name": "LinkGuard — URL 분석",
   "version": "0.1.0",
-  "description": "URL 분석 UI 목업입니다. 실제 보안 검사를 수행하지 않습니다.",
-  "permissions": [
-    "activeTab"
-  ],
+  "description": "현재 탭 또는 입력한 URL을 빠르게 분석하고 판정 근거를 확인합니다.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["https://d2gmygchoew9ed.cloudfront.net/*"],
   "action": {
     "default_title": "LinkGuard",
     "default_popup": "popup.html",
